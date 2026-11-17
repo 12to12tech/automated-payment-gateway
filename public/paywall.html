@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure UPI Checkout • AuraPay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/paywall.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+
+  <main class="checkout-wrapper">
+    
+    <!-- PAYWALL ACTIVE CARD -->
+    <div class="paywall-card" id="paywallCard">
+      
+      <!-- Top Brand Header -->
+      <div class="card-top">
+        <div class="merchant-badge">
+          <div class="merchant-logo-mark" id="merchantLogo">A</div>
+          <div>
+            <h2 class="merchant-name" id="merchantNameDisplay">Apex Cloud &amp; Payments</h2>
+            <div class="verified-merchant-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Verified Merchant
+            </div>
+          </div>
+        </div>
+
+        <div class="order-ref-pill">
+          <span class="ref-label">Order</span>
+          <span class="ref-val font-mono" id="orderRefDisplay">PAY-000000</span>
+        </div>
+      </div>
+
+      <!-- Amount Header -->
+      <div class="amount-hero">
+        <span class="currency-tag">Amount to Pay</span>
+        <div class="amount-val" id="amountDisplay">₹0.00</div>
+        <div class="amount-purpose" id="purposeDisplay">Down Payment &amp; Instant Verification</div>
+      </div>
+
+      <!-- Dynamic QR & Scanner Showcase -->
+      <div class="qr-showcase-box">
+        <div class="qr-frame">
+          <div class="laser-scanner"></div>
+          <!-- Dynamic modified QR Code with exact amount -->
+          <img src="/qr-code.jpeg" alt="Dynamic UPI QR" class="dynamic-qr-img" id="dynamicQrImg">
+        </div>
+
+        <!-- Down payment badge below QR -->
+        <div class="down-payment-label">
+          <span class="live-pulse"></span>
+          <span>DOWN PAYMENT • SCAN &amp; PAY EXACT AMOUNT</span>
+        </div>
+      </div>
+
+      <!-- UPI ID Copy & Manual Details -->
+      <div class="pay-actions">
+        <div class="upi-id-bar">
+          <div class="upi-text-wrap">
+            <span class="upi-sub">Direct Payee UPI ID</span>
+            <span class="upi-address font-mono" id="upiIdDisplay">8789601387@fam</span>
+          </div>
+          <button type="button" class="btn-copy" id="copyUpiBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span>Copy</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Real-Time Auto-Verification Radar -->
+      <div class="radar-status-bar">
+        <div class="radar-circle">
+          <div class="radar-wave"></div>
+          <div class="radar-dot"></div>
+        </div>
+        <div class="radar-info">
+          <div class="radar-title" id="radarTitle">Auto-verifying payment in real time...</div>
+          <div class="radar-desc" id="radarDesc">Listening to bank email notifications. No page reload required.</div>
+        </div>
+        <div class="session-timer font-mono" id="paywallTimer">04:59</div>
+      </div>
+
+      <!-- Manual UTR Fallback -->
+      <div class="utr-accordion">
+        <div class="utr-toggle" id="utrToggle">
+          <span>Paid already? Enter UTR / Ref Number manually</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+        <div class="utr-drawer hidden" id="utrDrawer">
+          <div class="utr-input-row">
+            <input type="text" id="manualUtrInput" class="utr-field" placeholder="Enter 12-digit UPI UTR">
+            <button type="button" class="btn-verify-utr" id="submitUtrBtn">Verify UTR</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Security Guarantee -->
+      <div class="security-foot">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <span>End-to-End Encrypted Peer-to-Peer UPI Settlement</span>
+      </div>
+
+    </div>
+
+    <!-- SUCCESS SCREEN (Hidden by default) -->
+    <div class="success-card hidden" id="successCard">
+      <div class="checkmark-wrap">
+        <div class="checkmark-circle">
+          <svg class="checkmark-svg" viewBox="0 0 52 52">
+            <circle class="checkmark-circle-bg" cx="26" cy="26" r="25" fill="none"/>
+            <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="success-headline">
+        <span class="pill-verified">Payment Confirmed &amp; Verified</span>
+        <h2 class="success-amt" id="successAmtDisplay">₹0.00</h2>
+        <p class="success-sub">Transaction received and validated via merchant bank alert stream.</p>
+      </div>
+
+      <!-- Receipt Box -->
+      <div class="receipt-card">
+        <div class="receipt-row">
+          <span>Order ID</span>
+          <strong class="font-mono" id="receiptOrderId">-</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Paid By</span>
+          <strong id="receiptPayer">-</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Paid To</span>
+          <strong id="receiptPayee">-</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Bank UTR / Ref</span>
+          <strong class="font-mono text-emerald" id="receiptUtr">-</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Transaction ID</span>
+          <strong class="font-mono" id="receiptTxnId">-</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Verified At</span>
+          <strong id="receiptTime">-</strong>
+        </div>
+      </div>
+
+      <!-- Receipt Actions -->
+      <div class="receipt-actions">
+        <button type="button" class="btn-print" id="printReceiptBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 6 2 18 2 18 9"/>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          Print Receipt
+        </button>
+        <button type="button" class="btn-recheck" id="btnRecheckStatus">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          Check Again
+        </button>
+        <button type="button" class="btn-pay-again" id="btnPayAgain">
+          Pay Again (New ₹1)
+        </button>
+        <button type="button" class="btn-return" id="returnMerchantBtn">
+          Done
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <div class="toast-box" id="toastBox"></div>
+
+  <script src="/paywall.js"></script>
+</body>
+</html>
