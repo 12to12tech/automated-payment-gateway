@@ -61,6 +61,66 @@
         </div>
       </div>
 
+      <!-- 1-Tap Mobile Intent Deep-Links -->
+      <div class="intent-section" id="intentSection">
+        <div class="intent-divider">
+          <span>OR PAY VIA MOBILE UPI APP</span>
+        </div>
+
+        <!-- Universal / Direct UPI Intent -->
+        <a id="btnPayDirect" class="btn-intent-primary" href="#">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <span id="btnPayDirectText">Pay via Any UPI App</span>
+        </a>
+
+        <!-- App-Specific Dedicated Deep-Links -->
+        <div class="intent-grid">
+          <a id="btnPhonePe" class="intent-card app-phonepe" href="#">
+            <div class="intent-icon-wrap" style="background: #5f259f;">
+              <span class="intent-app-initial">P</span>
+            </div>
+            <span class="intent-app-name">PhonePe</span>
+          </a>
+
+          <a id="btnGPay" class="intent-card app-gpay" href="#">
+            <div class="intent-icon-wrap" style="background: #4285f4;">
+              <span class="intent-app-initial">G</span>
+            </div>
+            <span class="intent-app-name">Google Pay</span>
+          </a>
+
+          <a id="btnPaytm" class="intent-card app-paytm" href="#">
+            <div class="intent-icon-wrap" style="background: #00baf2;">
+              <span class="intent-app-initial" style="font-size: 10px;">Pay</span>
+            </div>
+            <span class="intent-app-name">Paytm</span>
+          </a>
+
+          <a id="btnFamPay" class="intent-card app-fampay" href="#">
+            <div class="intent-icon-wrap" style="background: #ffd200; color: #1e293b;">
+              <span class="intent-app-initial">F</span>
+            </div>
+            <span class="intent-app-name">FamPay</span>
+          </a>
+
+          <a id="btnNavi" class="intent-card app-navi" href="#">
+            <div class="intent-icon-wrap" style="background: #00c6ff;">
+              <span class="intent-app-initial">N</span>
+            </div>
+            <span class="intent-app-name">Navi</span>
+          </a>
+
+          <a id="btnSuperMoney" class="intent-card app-supermoney" href="#">
+            <div class="intent-icon-wrap" style="background: linear-gradient(135deg, #10b981, #047857);">
+              <span class="intent-app-initial">S</span>
+            </div>
+            <span class="intent-app-name">super.money</span>
+          </a>
+        </div>
+      </div>
+
       <!-- UPI ID Copy & Manual Details -->
       <div class="pay-actions">
         <div class="upi-id-bar">
@@ -192,6 +252,7 @@
 
   <div class="toast-box" id="toastBox"></div>
 
+  <script src="/js/checkout.js"></script>
   <script src="/paywall.js"></script>
 </body>
 </html>

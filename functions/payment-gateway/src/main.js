@@ -1,7 +1,9 @@
 const mongoose = require('mongoose');
 const QRCode = require('qrcode');
 
-const MONGODB_URI = process.env.MONGODB_URI || '';
+const MONGODB_URI = (process.env.MONGODB_URI && !process.env.MONGODB_URI.includes('<username>'))
+  ? process.env.MONGODB_URI 
+  : '';
 
 // Mongoose Models
 let MerchantModel, OrderModel;
@@ -133,12 +135,16 @@ module.exports = async ({ req, res, log, error }) => {
     }
 
     const orderId = `PAY-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+    const safeNote = (note || `Pay ${orderId}`).replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 24);
+    const cleanVpa = (merchant.upiId || '8789601387@fam').trim();
     const safeName = (merchant.businessName || 'Monu Kumar').replace(/&/g, 'and').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-    const cleanOrderId = orderId.replace(/[^a-zA-Z0-9]/g, '');
-    const safeNote = (note || cleanOrderId).replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24);
+    const cleanName = encodeURIComponent(safeName);
+    const cleanAmount = Number(finalAmount).toFixed(2);
+    const txnRef = encodeURIComponent(orderId);
+    const cleanNote = encodeURIComponent(safeNote);
     
-    // Unique dynamic UPI URL with distinct amount, note & tr
-    const upiUri = `upi://pay?pa=${encodeURIComponent(merchant.upiId)}&pn=${encodeURIComponent(safeName)}&am=${finalAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(safeNote)}&tr=${encodeURIComponent(cleanOrderId)}`;
+    // Strict NPCI UPI Intent URI: keeping '@' raw in pa, adding mode=00
+    const upiUri = `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&tr=${txnRef}&tn=${cleanNote}&cu=INR&mode=00`;
 
     const qrDataUrl = await QRCode.toDataURL(upiUri, {
       errorCorrectionLevel: 'H',
@@ -165,11 +171,13 @@ module.exports = async ({ req, res, log, error }) => {
     return res.json({
       success: true,
       orderId: newOrder.orderId,
+      orderCode: newOrder.orderId,
       amount: newOrder.amount,
       currency: 'INR',
       status: 'PENDING',
       paywallUrl: `/pay/${newOrder.orderId}`,
       dynamicUpiUrl: newOrder.dynamicUpiUrl,
+      upiUri: newOrder.dynamicUpiUrl,
       dynamicQrDataUrl: newOrder.dynamicQrDataUrl
     }, 201, corsHeaders);
   }
@@ -202,10 +210,16 @@ module.exports = async ({ req, res, log, error }) => {
     }
 
     const orderId = `PAY-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+    const safeNote = (note || `Pay ${orderId}`).replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 24);
+    const cleanVpa = (merchant.upiId || '8789601387@fam').trim();
     const safeName = (merchant.businessName || 'Monu Kumar').replace(/&/g, 'and').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-    const cleanOrderId = orderId.replace(/[^a-zA-Z0-9]/g, '');
-    const safeNote = (note || cleanOrderId).replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24);
-    const upiUri = `upi://pay?pa=${encodeURIComponent(merchant.upiId)}&pn=${encodeURIComponent(safeName)}&am=${finalAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(safeNote)}&tr=${encodeURIComponent(cleanOrderId)}`;
+    const cleanName = encodeURIComponent(safeName);
+    const cleanAmount = Number(finalAmount).toFixed(2);
+    const txnRef = encodeURIComponent(orderId);
+    const cleanNote = encodeURIComponent(safeNote);
+    
+    // Strict NPCI UPI Intent URI: keeping '@' raw in pa, adding mode=00
+    const upiUri = `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&tr=${txnRef}&tn=${cleanNote}&cu=INR&mode=00`;
 
     const qrDataUrl = await QRCode.toDataURL(upiUri, {
       errorCorrectionLevel: 'H',
@@ -323,10 +337,12 @@ module.exports = async ({ req, res, log, error }) => {
       success: true,
       order: {
         orderId: order.orderId,
+        orderCode: order.orderId,
         amount: order.amount,
         customerName: order.customerName,
         note: order.note,
         status: order.status,
+        upiUri: order.dynamicUpiUrl,
         dynamicUpiUrl: order.dynamicUpiUrl,
         dynamicQrDataUrl: order.dynamicQrDataUrl,
         verifiedAt: order.verifiedAt,

@@ -6,14 +6,23 @@ const jsQR = require('jsqr');
  * Generate a dynamic UPI payment URI
  */
 function buildUpiUri({ upiId, payeeName, amount, note, orderId }) {
-  // NPCI strictly requires alphanumeric letters and single spaces without symbols like & or #
+  // 1. Payee VPA / UPI ID: Crucial - do NOT percent-encode '@' into '%40'!
+  const cleanVpa = (upiId || '8789601387@fam').trim();
+
+  // 2. Payee Merchant Name: Format and sanitize
   const safeName = (payeeName || 'Monu Kumar').replace(/&/g, 'and').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-  const cleanOrderId = (orderId || `PAY${Date.now().toString().slice(-6)}`).replace(/[^a-zA-Z0-9]/g, '');
-  const safeNote = (note || cleanOrderId).replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24);
-  const amtFormatted = parseFloat(amount).toFixed(2);
-  
-  // Standard NPCI UPI URI Scheme with unique tr (ref) and tn (note) for isolated verification
-  return `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(safeName)}&am=${amtFormatted}&cu=INR&tn=${encodeURIComponent(safeNote)}&tr=${encodeURIComponent(cleanOrderId)}`;
+  const cleanName = encodeURIComponent(safeName);
+
+  // 3. Amount: Fixed to 2 decimal places
+  const cleanAmount = Number(amount || 1.00).toFixed(2);
+
+  // 4. Transaction Reference & Note
+  const orderCode = orderId || `PAY-${Date.now().toString().slice(-6)}`;
+  const txnRef = encodeURIComponent(orderCode);
+  const cleanNote = encodeURIComponent(note || `Pay ${orderCode}`);
+
+  // Standard NPCI UPI URI: mode=00 is required by strict UPI clients like Paytm
+  return `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&tr=${txnRef}&tn=${cleanNote}&cu=INR&mode=00`;
 }
 
 /**
