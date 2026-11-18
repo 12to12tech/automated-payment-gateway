@@ -1,81 +1,44 @@
 /**
- * KPay QR — NPCI Compliant UPI URI & App Intent Link Builder
- * 
- * Automatically handles the difference between:
- * 1. Personal Bank Accounts (P2P):
- *    Omits `mode` and merchant-only tags (`tr`, `mc`) to eliminate PhonePe / "Paytm Protect"
- *    and NPCI UPI Risk Policy alerts ("This payment may fail as per UPI Risk Policy...").
- * 2. Verified Merchant Accounts (P2M):
- *    Applies `mode=04` (locked non-editable amount), MCC code, and transaction references.
+ * UPI Intent URI & QR Code Utility
+ * Strict NPCI-compliant URI formatting for universal Indian UPI apps
  */
 
 const QRCode = require('qrcode');
 
 /**
- * Builds an NPCI-compliant UPI URI.
+ * Constructs an NPCI-compliant UPI Intent URI
+ * 
+ * @param {Object} params
+ * @param {string} params.upiVpa - Payee UPI ID (e.g. 8789601387@fam). The '@' symbol MUST remain raw!
+ * @param {string} params.merchantName - Payee Business / Merchant Name
+ * @param {number|string} params.amount - Transaction Amount
+ * @param {string} params.orderCode - Unique Order Identifier (e.g. ORD-XXXXXX or PAY-XXXXXX)
+ * @param {string} [params.note] - Optional custom note
+ * @returns {string} Standard UPI Intent URI
  */
-function buildUpiUri(request) {
-  const vpa = (request.upiVpa || request.vpa || request.upiId || '8789601387@fam').trim();
-  const name = (request.merchantName || request.name || request.payeeName || 'Apex Cloud and Payments')
+function buildUpiUri({ upiVpa, merchantName, amount, orderCode, note }) {
+  // 1. Payee VPA / UPI ID: Crucial - do NOT percent-encode '@' into '%40'!
+  const cleanVpa = (upiVpa || '8789601387@fam').trim();
+
+  // 2. Payee Merchant Name: Format and sanitize (& replaced with and, stripped of disallowed chars)
+  const sanitizedName = (merchantName || 'Apex Cloud and Payments')
     .replace(/&/g, 'and')
     .replace(/[^a-zA-Z0-9 ]/g, '')
     .trim();
-  const amount = Number(request.amount || 1.00).toFixed(2);
-  const orderId = request.orderCode || request.orderId || `ORD-${Date.now()}`;
-  const note = request.note || `Pay ${orderId}`;
-  const cleanNote = note.replace(/[^a-zA-Z0-9 \-]/g, '').trim().slice(0, 24);
+  const cleanName = encodeURIComponent(sanitizedName);
 
-  const isPersonal = request.accountType === 'personal' || (!request.mc && request.accountType !== 'merchant');
+  // 3. Transaction Amount: Fixed to 2 decimal places
+  const cleanAmount = Number(amount || 1.00).toFixed(2);
 
-  // Base NPCI parameters (pa unencoded for @)
-  const cleanVpa = vpa;
-  const cleanName = encodeURIComponent(name);
-  const cleanAmount = amount;
-  const cleanNoteParam = encodeURIComponent(cleanNote);
+  // 4. Transaction Reference: Unique order code
+  const txnRef = encodeURIComponent(orderCode || `ORD-${Date.now()}`);
 
-  if (!isPersonal) {
-    // ── Verified Merchant Flow (P2M) ──────────────────────────────────
-    // mode=04 locks the amount in user's UPI app (NPCI spec for verified merchants).
-    // MUST NOT be sent for personal P2P accounts as it triggers Paytm Protect & risk policy blocks.
-    const mode = request.mode === 'open' ? '00' : (request.mode || '04');
-    const txnRef = encodeURIComponent(orderId);
-    let uri = `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&cu=INR&tr=${txnRef}&tn=${cleanNoteParam}&mode=${mode}`;
-    if (request.mc) {
-      uri += `&mc=${encodeURIComponent(request.mc)}`;
-    }
-    return uri;
-  } else {
-    // ── Personal Account Flow (P2P) ───────────────────────────────────
-    // Clean, unflagged P2P transfer parameters.
-    // Omit `mode` and `tr` to avoid merchant impersonation / NPCI Risk Policy blocks in PhonePe!
-    return `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&cu=INR&tn=${cleanNoteParam}`;
-  }
-}
+  // 5. Transaction Note: Description shown in UPI client
+  const rawNote = note || `Pay ${orderCode || 'Order'}`;
+  const cleanNote = encodeURIComponent(rawNote.replace(/[^a-zA-Z0-9 \-]/g, '').trim().slice(0, 24));
 
-/**
- * Builds app-specific intent links for Indian mobile payment apps:
- * - PhonePe, Google Pay (Tez), Paytm, BHIM, CRED, Amazon Pay, WhatsApp, and direct UPI mobile intent.
- */
-function buildIntentLinks(upiUri, mobileNumber) {
-  const queryString = upiUri.replace(/^upi:\/\/pay\?/, '');
-
-  const links = {
-    generic: upiUri,
-    phonepe: `phonepe://pay?${queryString}`,
-    gpay: `tez://upi/pay?${queryString}`,
-    paytm: `paytmmp://pay?${queryString}`,
-    bhim: `upi://pay?${queryString}`,
-    cred: `credpay://upi/pay?${queryString}`,
-    amazonpay: `amazonpay://upi/pay?${queryString}`,
-    whatsapp: `intent://pay?${queryString}#Intent;scheme=upi;package=com.whatsapp;end`
-  };
-
-  const cleanMobile = (mobileNumber || '').toString().trim().replace(/^\+91/, '');
-  if (/^[6-9]\d{9}$/.test(cleanMobile)) {
-    links.mobileIntent = `upi://pay?pa=${cleanMobile}@upi&cu=INR`;
-  }
-
-  return links;
+  // Construct NPCI URI: mode=00 is mandatory for Paytm and strict bank validation
+  return `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&tr=${txnRef}&tn=${cleanNote}&cu=INR&mode=00`;
 }
 
 /**
@@ -99,7 +62,5 @@ async function generateDynamicQrDataUrl(params) {
 
 module.exports = {
   buildUpiUri,
-  buildUPIUri: buildUpiUri,
-  buildIntentLinks,
   generateDynamicQrDataUrl
 };

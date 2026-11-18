@@ -143,11 +143,8 @@ module.exports = async ({ req, res, log, error }) => {
     const txnRef = encodeURIComponent(orderId);
     const cleanNote = encodeURIComponent(safeNote);
     
-    // KPay P2P Intent: Omit 'tr' and 'mode' for personal P2P accounts (eliminates PhonePe risk policy alerts)
-    const isPersonal = merchant.accountType !== 'merchant' && !merchant.mc;
-    const upiUri = isPersonal
-      ? `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&cu=INR&tn=${cleanNote}`
-      : `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&cu=INR&tr=${txnRef}&tn=${cleanNote}&mode=04${merchant.mc ? '&mc=' + encodeURIComponent(merchant.mc) : ''}`;
+    // Strict NPCI UPI Intent URI: keeping '@' raw in pa, adding mode=00
+    const upiUri = `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&tr=${txnRef}&tn=${cleanNote}&cu=INR&mode=00`;
 
     const qrDataUrl = await QRCode.toDataURL(upiUri, {
       errorCorrectionLevel: 'H',
@@ -221,11 +218,8 @@ module.exports = async ({ req, res, log, error }) => {
     const txnRef = encodeURIComponent(orderId);
     const cleanNote = encodeURIComponent(safeNote);
     
-    // KPay P2P Intent: Omit 'tr' and 'mode' for personal P2P accounts (eliminates PhonePe risk policy alerts)
-    const isPersonal = merchant.accountType !== 'merchant' && !merchant.mc;
-    const upiUri = isPersonal
-      ? `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&cu=INR&tn=${cleanNote}`
-      : `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&cu=INR&tr=${txnRef}&tn=${cleanNote}&mode=04${merchant.mc ? '&mc=' + encodeURIComponent(merchant.mc) : ''}`;
+    // Strict NPCI UPI Intent URI: keeping '@' raw in pa, adding mode=00
+    const upiUri = `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&tr=${txnRef}&tn=${cleanNote}&cu=INR&mode=00`;
 
     const qrDataUrl = await QRCode.toDataURL(upiUri, {
       errorCorrectionLevel: 'H',
