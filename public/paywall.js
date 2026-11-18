@@ -121,11 +121,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const o = orderData.order;
     const m = orderData.merchant || {};
 
-    orderRefDisplay.textContent = o.orderId || o.orderCode;
+    orderRefDisplay.textContent = o.orderId;
     merchantNameDisplay.textContent = m.businessName || 'Apex Cloud & Payments';
     merchantLogo.textContent = ((m.businessName || 'Apex')[0] || 'A').toUpperCase();
     amountDisplay.textContent = `₹${parseFloat(o.amount).toFixed(2)}`;
-    purposeDisplay.textContent = o.note || `Order #${o.orderId || o.orderCode}`;
+    purposeDisplay.textContent = o.note || `Order #${o.orderId}`;
     
     // Dynamic QR with exact pre-filled amount
     if (o.dynamicQrDataUrl) {
@@ -133,38 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     upiIdDisplay.textContent = m.upiId || '8789601387@fam';
-
-    // 1-Tap Mobile Intent Deep-Links configuration
-    if (typeof window.setupUpiIntentLinks === 'function') {
-      window.setupUpiIntentLinks(o);
-    } else {
-      setupUpiDeepLinksFallback(o);
-    }
-  }
-
-  function setupUpiDeepLinksFallback(order) {
-    const rawUri = order.upiUri || order.dynamicUpiUrl || '';
-    if (!rawUri) return;
-    const upiParams = rawUri.replace(/^upi:\/\/pay\??/, '');
-    const isAndroid = /Android/i.test(navigator.userAgent || '');
-
-    const btnPayDirect = document.getElementById('btnPayDirect');
-    const btnGPay = document.getElementById('btnGPay');
-    const btnPaytm = document.getElementById('btnPaytm');
-    const btnWhatsApp = document.getElementById('btnWhatsApp');
-
-    if (btnPayDirect) btnPayDirect.href = rawUri;
-    if (btnGPay) btnGPay.href = `tez://upi/pay?${upiParams}`;
-    if (btnPaytm) {
-      btnPaytm.href = isAndroid
-        ? `intent://pay?${upiParams}#Intent;scheme=upi;package=net.one97.paytm;end`
-        : `paytmmp://pay?${upiParams}`;
-    }
-    if (btnWhatsApp) {
-      btnWhatsApp.href = isAndroid
-        ? `intent://pay?${upiParams}#Intent;scheme=upi;package=com.whatsapp;end`
-        : `whatsapp://pay?${upiParams}`;
-    }
   }
 
   function setupEvents() {

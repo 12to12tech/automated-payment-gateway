@@ -545,7 +545,7 @@ app.post('/api/v1/simulate-payment', (req, res) => {
 // 5. HOSTED PAYWALL ROUTE
 // ==============================================================
 
-app.get(['/pay/:orderId', '/checkout/:orderId'], (req, res) => {
+app.get('/pay/:orderId', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'paywall.html'));
 });
 
