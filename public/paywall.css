@@ -846,8 +846,8 @@ body {
 
 .intent-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
 }
 
 .intent-card {
@@ -856,7 +856,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 10px 4px;
+  padding: 8px 2px;
   background: #FFFFFF;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -877,6 +877,11 @@ body {
   transform: scale(0.96);
 }
 
+.app-phonepe:hover {
+  border-color: #C084FC;
+  background: #FAF5FF;
+}
+
 .app-gpay:hover {
   border-color: #93C5FD;
   background: #EFF6FF;
@@ -885,6 +890,11 @@ body {
 .app-paytm:hover {
   border-color: #7DD3FC;
   background: #F0F9FF;
+}
+
+.app-cred:hover {
+  border-color: #4B5563;
+  background: #F9FAFB;
 }
 
 .app-whatsapp:hover {

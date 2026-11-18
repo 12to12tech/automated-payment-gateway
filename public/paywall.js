@@ -149,17 +149,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const isAndroid = /Android/i.test(navigator.userAgent || '');
 
     const btnPayDirect = document.getElementById('btnPayDirect');
+    const btnPhonePe = document.getElementById('btnPhonePe');
     const btnGPay = document.getElementById('btnGPay');
     const btnPaytm = document.getElementById('btnPaytm');
+    const btnCred = document.getElementById('btnCred');
     const btnWhatsApp = document.getElementById('btnWhatsApp');
 
     if (btnPayDirect) btnPayDirect.href = rawUri;
+    if (btnPhonePe) btnPhonePe.href = `phonepe://pay?${upiParams}`;
     if (btnGPay) btnGPay.href = `tez://upi/pay?${upiParams}`;
     if (btnPaytm) {
       btnPaytm.href = isAndroid
         ? `intent://pay?${upiParams}#Intent;scheme=upi;package=net.one97.paytm;end`
         : `paytmmp://pay?${upiParams}`;
     }
+    if (btnCred) btnCred.href = `credpay://upi/pay?${upiParams}`;
     if (btnWhatsApp) {
       btnWhatsApp.href = isAndroid
         ? `intent://pay?${upiParams}#Intent;scheme=upi;package=com.whatsapp;end`

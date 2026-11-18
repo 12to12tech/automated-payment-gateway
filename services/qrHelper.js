@@ -5,7 +5,7 @@ const jsQR = require('jsqr');
 /**
  * Generate a dynamic UPI payment URI
  */
-function buildUpiUri({ upiId, payeeName, amount, note, orderId }) {
+function buildUpiUri({ upiId, payeeName, amount, note, orderId, accountType = 'personal', mc }) {
   // 1. Payee VPA / UPI ID: Crucial - do NOT percent-encode '@' into '%40'!
   const cleanVpa = (upiId || '8789601387@fam').trim();
 
@@ -16,13 +16,21 @@ function buildUpiUri({ upiId, payeeName, amount, note, orderId }) {
   // 3. Amount: Fixed to 2 decimal places
   const cleanAmount = Number(amount || 1.00).toFixed(2);
 
-  // 4. Transaction Reference & Note
+  // 4. Note
   const orderCode = orderId || `PAY-${Date.now().toString().slice(-6)}`;
-  const txnRef = encodeURIComponent(orderCode);
   const cleanNote = encodeURIComponent(note || `Pay ${orderCode}`);
 
-  // Standard NPCI UPI URI: mode=00 is required by strict UPI clients like Paytm
-  return `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&tr=${txnRef}&tn=${cleanNote}&cu=INR&mode=00`;
+  const isPersonal = accountType === 'personal' || (!mc && accountType !== 'merchant');
+
+  if (!isPersonal) {
+    const txnRef = encodeURIComponent(orderCode);
+    let uri = `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&cu=INR&tr=${txnRef}&tn=${cleanNote}&mode=04`;
+    if (mc) uri += `&mc=${encodeURIComponent(mc)}`;
+    return uri;
+  }
+
+  // Personal P2P: Omit tr and mode to eliminate PhonePe & NPCI UPI Risk Policy blocks
+  return `upi://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmount}&cu=INR&tn=${cleanNote}`;
 }
 
 /**
