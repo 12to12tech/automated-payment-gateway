@@ -2,13 +2,11 @@
  * Mobile Deep-Link Handling (public/js/checkout.js)
  * 
  * On the checkout screen (/checkout/:orderCode or /pay/:orderCode), strips upi://pay? 
- * and constructs dedicated deep-links for each major UPI app:
- * - Direct / Universal UPI Intent & FamPay
- * - Google Pay (tez:// scheme)
- * - PhonePe (phonepe:// scheme)
- * - Paytm (Android Intent package targeting / iOS paytmmp:// fallback)
- * - Navi (Android Intent scheme targeting com.naviapp)
- * - super.money (Android Intent scheme targeting money.super.payments)
+ * and constructs dedicated deep-links for verified, reliable UPI apps:
+ * - Direct / Universal UPI Intent (btnPayDirect)
+ * - Google Pay (btnGPay) using registered Tez scheme (tez://upi/pay?...)
+ * - Paytm (btnPaytm) using Android package intent / iOS paytmmp:// fallback
+ * - WhatsApp Pay (btnWhatsApp) using Android package intent / iOS whatsapp:// scheme
  */
 
 function setupUpiIntentLinks(order) {
@@ -21,14 +19,10 @@ function setupUpiIntentLinks(order) {
   const upiParams = rawUri.replace(/^upi:\/\/pay\??/, '');
   const isAndroid = /Android/i.test(navigator.userAgent || '');
 
-  // 1. Universal / Direct UPI Intent & FamPay
+  // 1. Universal / Direct UPI Intent (opens system UPI app chooser)
   const btnPayDirect = document.getElementById('btnPayDirect');
-  const btnFamPay = document.getElementById('btnFamPay');
   if (btnPayDirect) {
     btnPayDirect.href = rawUri;
-  }
-  if (btnFamPay) {
-    btnFamPay.href = rawUri;
   }
 
   // 2. Google Pay: Uses Google Pay's registered Tez scheme
@@ -37,13 +31,7 @@ function setupUpiIntentLinks(order) {
     btnGPay.href = `tez://upi/pay?${upiParams}`;
   }
 
-  // 3. PhonePe
-  const btnPhonePe = document.getElementById('btnPhonePe');
-  if (btnPhonePe) {
-    btnPhonePe.href = `phonepe://pay?${upiParams}`;
-  }
-
-  // 4. Paytm: Uses Android Intent URL with explicit package targeting on Android, fallback for iOS
+  // 3. Paytm: Uses Android Intent URL with explicit package targeting on Android, fallback for iOS
   const btnPaytm = document.getElementById('btnPaytm');
   if (btnPaytm) {
     if (isAndroid) {
@@ -53,23 +41,13 @@ function setupUpiIntentLinks(order) {
     }
   }
 
-  // 5. Navi
-  const btnNavi = document.getElementById('btnNavi');
-  if (btnNavi) {
+  // 4. WhatsApp Pay: Opens native WhatsApp Payments on Android/iOS
+  const btnWhatsApp = document.getElementById('btnWhatsApp');
+  if (btnWhatsApp) {
     if (isAndroid) {
-      btnNavi.href = `intent://pay?${upiParams}#Intent;scheme=com.naviapp;end`;
+      btnWhatsApp.href = `intent://pay?${upiParams}#Intent;scheme=upi;package=com.whatsapp;end`;
     } else {
-      btnNavi.href = rawUri;
-    }
-  }
-
-  // 6. super.money
-  const btnSuperMoney = document.getElementById('btnSuperMoney');
-  if (btnSuperMoney) {
-    if (isAndroid) {
-      btnSuperMoney.href = `intent://pay?${upiParams}#Intent;scheme=upi;package=money.super.payments;end`;
-    } else {
-      btnSuperMoney.href = rawUri;
+      btnWhatsApp.href = `whatsapp://pay?${upiParams}`;
     }
   }
 }

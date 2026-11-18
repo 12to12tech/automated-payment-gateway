@@ -877,6 +877,21 @@ body {
   transform: scale(0.96);
 }
 
+.app-gpay:hover {
+  border-color: #93C5FD;
+  background: #EFF6FF;
+}
+
+.app-paytm:hover {
+  border-color: #7DD3FC;
+  background: #F0F9FF;
+}
+
+.app-whatsapp:hover {
+  border-color: #86EFAC;
+  background: #F0FDF4;
+}
+
 .intent-icon-wrap {
   width: 32px;
   height: 32px;

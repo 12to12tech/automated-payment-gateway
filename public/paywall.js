@@ -149,31 +149,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const isAndroid = /Android/i.test(navigator.userAgent || '');
 
     const btnPayDirect = document.getElementById('btnPayDirect');
-    const btnFamPay = document.getElementById('btnFamPay');
     const btnGPay = document.getElementById('btnGPay');
-    const btnPhonePe = document.getElementById('btnPhonePe');
     const btnPaytm = document.getElementById('btnPaytm');
-    const btnNavi = document.getElementById('btnNavi');
-    const btnSuperMoney = document.getElementById('btnSuperMoney');
+    const btnWhatsApp = document.getElementById('btnWhatsApp');
 
     if (btnPayDirect) btnPayDirect.href = rawUri;
-    if (btnFamPay) btnFamPay.href = rawUri;
     if (btnGPay) btnGPay.href = `tez://upi/pay?${upiParams}`;
-    if (btnPhonePe) btnPhonePe.href = `phonepe://pay?${upiParams}`;
     if (btnPaytm) {
       btnPaytm.href = isAndroid
         ? `intent://pay?${upiParams}#Intent;scheme=upi;package=net.one97.paytm;end`
         : `paytmmp://pay?${upiParams}`;
     }
-    if (btnNavi) {
-      btnNavi.href = isAndroid
-        ? `intent://pay?${upiParams}#Intent;scheme=com.naviapp;end`
-        : rawUri;
-    }
-    if (btnSuperMoney) {
-      btnSuperMoney.href = isAndroid
-        ? `intent://pay?${upiParams}#Intent;scheme=upi;package=money.super.payments;end`
-        : rawUri;
+    if (btnWhatsApp) {
+      btnWhatsApp.href = isAndroid
+        ? `intent://pay?${upiParams}#Intent;scheme=upi;package=com.whatsapp;end`
+        : `whatsapp://pay?${upiParams}`;
     }
   }
 
