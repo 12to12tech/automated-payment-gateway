@@ -76,12 +76,16 @@ When User 1 pays ₹1.00, only User 1 receives verification. User 2's screen rem
 * **IMAP IDLE Push**: Reacts immediately to TCP socket `exists` notifications emitted by Gmail.
 * **Active Visibility Listener**: Browser automatically triggers an immediate zero-delay verification query the instant a user switches back from their UPI app.
 
-### 3. 📱 Minimalist Dynamic Paywall
-* Dynamic QR Code rendered via vector canvas with high error correction (`H`).
-* Animated laser scan effect.
-* 1-Click Payee UPI ID copy for manual payments.
-* Expandable manual 12-digit UTR fallback drawer.
-* Comprehensive receipt screen with printable invoice.
+### 3. 📱 Minimalist Dynamic Paywall & 1-Tap Mobile Intent
+* **Dynamic QR Code**: Rendered via vector canvas with high error correction (`H`) and exact micro-paise amounts pre-filled.
+* **1-Tap Mobile Intent Deep-Linking**:
+  * **Direct UPI Intent & FamPay**: Standard universal system app selector (`upi://pay?...`).
+  * **Google Pay**: Uses registered Tez scheme (`tez://upi/pay?...`).
+  * **PhonePe**: Targeted deep-link (`phonepe://pay?...`).
+  * **Paytm**: Package-targeted Android Intent (`intent://pay?...#Intent;scheme=upi;package=net.one97.paytm;end`) with `paytmmp://` iOS fallback.
+  * **Navi & super.money**: Explicit Android package deep-links.
+* **Strict NPCI Compliance**: Keeps the `@` symbol unencoded in the VPA (`pa=handle@fam` instead of `%40`) and appends `mode=00` to prevent bank app rejection.
+* **Zero-Delay Status Radar**: Instant auto-polling (< 750ms) + visibility listener when switching back from UPI apps.
 
 ---
 
@@ -102,8 +106,10 @@ When User 1 pays ₹1.00, only User 1 receives verification. User 2's screen rem
 ├── public/                     # Frontend client assets
 │   ├── app.js                  # Merchant onboarding & dashboard logic
 │   ├── index.html              # Landing page & merchant dashboard
+│   ├── js/
+│   │   └── checkout.js         # Mobile UPI deep-linking & intent builder
 │   ├── paywall.css             # Paywall styling & laser scanner animation
-│   ├── paywall.html            # Hosted customer checkout screen
+│   ├── paywall.html            # Hosted customer checkout screen with 1-tap intent
 │   ├── paywall.js              # Real-time polling & success handler
 │   └── style.css               # Global application stylesheet
 ├── services/
@@ -113,6 +119,9 @@ When User 1 pays ₹1.00, only User 1 receives verification. User 2's screen rem
 │   ├── paymentParser.js        # Bank alert regex extractor (UTR, Amount)
 │   ├── qrHelper.js             # Dynamic NPCI UPI URI & QR generator
 │   └── store.js                # Dual local & MongoDB persistence layer
+├── src/
+│   └── utils/
+│       └── qr.util.js          # Core NPCI URI builder & QR generator
 └── uploads/                    # Merchant QR codes & media uploads
 ```
 

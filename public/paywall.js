@@ -121,11 +121,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const o = orderData.order;
     const m = orderData.merchant || {};
 
-    orderRefDisplay.textContent = o.orderId;
+    orderRefDisplay.textContent = o.orderId || o.orderCode;
     merchantNameDisplay.textContent = m.businessName || 'Apex Cloud & Payments';
     merchantLogo.textContent = ((m.businessName || 'Apex')[0] || 'A').toUpperCase();
     amountDisplay.textContent = `₹${parseFloat(o.amount).toFixed(2)}`;
-    purposeDisplay.textContent = o.note || `Order #${o.orderId}`;
+    purposeDisplay.textContent = o.note || `Order #${o.orderId || o.orderCode}`;
     
     // Dynamic QR with exact pre-filled amount
     if (o.dynamicQrDataUrl) {
@@ -133,6 +133,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     upiIdDisplay.textContent = m.upiId || '8789601387@fam';
+
+    // 1-Tap Mobile Intent Deep-Links configuration
+    if (typeof window.setupUpiIntentLinks === 'function') {
+      window.setupUpiIntentLinks(o);
+    } else {
+      setupUpiDeepLinksFallback(o);
+    }
+  }
+
+  function setupUpiDeepLinksFallback(order) {
+    const rawUri = order.upiUri || order.dynamicUpiUrl || '';
+    if (!rawUri) return;
+    const upiParams = rawUri.replace(/^upi:\/\/pay\??/, '');
+    const isAndroid = /Android/i.test(navigator.userAgent || '');
+
+    const btnPayDirect = document.getElementById('btnPayDirect');
+    const btnFamPay = document.getElementById('btnFamPay');
+    const btnGPay = document.getElementById('btnGPay');
+    const btnPhonePe = document.getElementById('btnPhonePe');
+    const btnPaytm = document.getElementById('btnPaytm');
+    const btnNavi = document.getElementById('btnNavi');
+    const btnSuperMoney = document.getElementById('btnSuperMoney');
+
+    if (btnPayDirect) btnPayDirect.href = rawUri;
+    if (btnFamPay) btnFamPay.href = rawUri;
+    if (btnGPay) btnGPay.href = `tez://upi/pay?${upiParams}`;
+    if (btnPhonePe) btnPhonePe.href = `phonepe://pay?${upiParams}`;
+    if (btnPaytm) {
+      btnPaytm.href = isAndroid
+        ? `intent://pay?${upiParams}#Intent;scheme=upi;package=net.one97.paytm;end`
+        : `paytmmp://pay?${upiParams}`;
+    }
+    if (btnNavi) {
+      btnNavi.href = isAndroid
+        ? `intent://pay?${upiParams}#Intent;scheme=com.naviapp;end`
+        : rawUri;
+    }
+    if (btnSuperMoney) {
+      btnSuperMoney.href = isAndroid
+        ? `intent://pay?${upiParams}#Intent;scheme=upi;package=money.super.payments;end`
+        : rawUri;
+    }
   }
 
   function setupEvents() {
