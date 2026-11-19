@@ -451,6 +451,35 @@ app.get('/api/v1/checkout/status/:orderId', async (req, res) => {
   });
 });
 
+// Secure Digital Delivery Endpoint (Requires Verified Payment)
+app.get('/api/v1/checkout/delivery/:orderId', (req, res) => {
+  const { orderId } = req.params;
+  const order = store.getOrder(orderId);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+
+  if (order.status !== 'PAID') {
+    return res.status(403).json({
+      error: 'Access Denied',
+      message: 'Payment has not been completed or verified yet. Please complete payment first.'
+    });
+  }
+
+  const DRIVE_VIEW_URL = 'https://drive.google.com/file/d/17kwNVuo_KY9XiRi5ohNXdo93CeQr0d3I/view?usp=sharing';
+  const DRIVE_DOWNLOAD_URL = 'https://drive.google.com/uc?export=download&id=17kwNVuo_KY9XiRi5ohNXdo93CeQr0d3I';
+  const targetUrl = req.query.download === '1' ? DRIVE_DOWNLOAD_URL : DRIVE_VIEW_URL;
+
+  if (req.xhr || req.headers.accept?.includes('application/json') || req.query.format === 'json') {
+    return res.json({
+      success: true,
+      verified: true,
+      deliveryUrl: DRIVE_VIEW_URL,
+      downloadUrl: DRIVE_DOWNLOAD_URL
+    });
+  }
+
+  return res.redirect(targetUrl);
+});
+
 // Dedicated SSE Stream for an order checkout
 app.get('/api/v1/checkout/events/:orderId', (req, res) => {
   const { orderId } = req.params;

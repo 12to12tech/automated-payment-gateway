@@ -4,9 +4,6 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  const DRIVE_VIEW_URL = 'https://drive.google.com/file/d/17kwNVuo_KY9XiRi5ohNXdo93CeQr0d3I/view?usp=sharing';
-  const DRIVE_DOWNLOAD_URL = 'https://drive.google.com/uc?export=download&id=17kwNVuo_KY9XiRi5ohNXdo93CeQr0d3I';
-
   const pathParts = window.location.pathname.split('/');
   let orderId = pathParts[pathParts.length - 1];
 
@@ -236,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     printReceiptBtn.addEventListener('click', () => window.print());
     returnMerchantBtn.addEventListener('click', () => {
-      window.location.href = DRIVE_VIEW_URL;
+      window.location.href = `/api/v1/checkout/delivery/${orderId}`;
     });
   }
 
@@ -343,12 +340,15 @@ document.addEventListener('DOMContentLoaded', () => {
     successCard.classList.remove('hidden');
     document.title = `✓ Paid ₹${amt} - Confirmed • AuraPay`;
 
-    // Configure Google Drive Download & Auto-Redirect
+    // Secure Server-Side Delivery & Auto-Redirect (Only accessible after verified payment)
+    const deliveryEndpoint = `/api/v1/checkout/delivery/${order.orderId}`;
+    const downloadEndpoint = `/api/v1/checkout/delivery/${order.orderId}?download=1`;
+
     const btnDownloadDrive = document.getElementById('btnDownloadDrive');
     if (btnDownloadDrive) {
-      btnDownloadDrive.href = DRIVE_VIEW_URL;
+      btnDownloadDrive.href = deliveryEndpoint;
       btnDownloadDrive.addEventListener('click', () => {
-        triggerDirectDownload();
+        triggerDeliveryDownload(downloadEndpoint);
       });
     }
 
@@ -362,18 +362,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (countdown <= 0) {
         clearInterval(redirectTimer);
-        // Attempt direct download on customer's phone/browser
-        triggerDirectDownload();
-        // Redirect directly to Google Drive viewer/file
-        window.location.href = DRIVE_VIEW_URL;
+        // Direct download attempt on phone/browser via verified backend endpoint
+        triggerDeliveryDownload(downloadEndpoint);
+        // Direct redirect via verified backend endpoint
+        window.location.href = deliveryEndpoint;
       }
     }, 1000);
   }
 
-  function triggerDirectDownload() {
+  function triggerDeliveryDownload(url) {
     try {
       const a = document.createElement('a');
-      a.href = DRIVE_DOWNLOAD_URL;
+      a.href = url;
       a.download = '';
       a.target = '_blank';
       a.rel = 'noopener noreferrer';

@@ -324,6 +324,44 @@ module.exports = async ({ req, res, log, error }) => {
     }, 200, corsHeaders);
   }
 
+  // Secure Digital File Delivery Route - Requires Verified Payment
+  if (path.includes('/api/v1/checkout/delivery/') && method === 'GET') {
+    const parts = path.split('/');
+    const orderId = parts[parts.length - 1].split('?')[0];
+    const order = await OrderModel.findOne({ orderId });
+    if (!order) {
+      return res.json({ error: 'Order not found' }, 404, corsHeaders);
+    }
+
+    if (order.status !== 'PAID') {
+      return res.json({ 
+        error: 'Access Denied', 
+        message: 'Payment has not been completed or verified yet. Please complete payment first.' 
+      }, 403, corsHeaders);
+    }
+
+    // Google Drive URLs kept strictly on server
+    const DRIVE_VIEW_URL = 'https://drive.google.com/file/d/17kwNVuo_KY9XiRi5ohNXdo93CeQr0d3I/view?usp=sharing';
+    const DRIVE_DOWNLOAD_URL = 'https://drive.google.com/uc?export=download&id=17kwNVuo_KY9XiRi5ohNXdo93CeQr0d3I';
+    const targetUrl = (req.query && req.query.download === '1') ? DRIVE_DOWNLOAD_URL : DRIVE_VIEW_URL;
+
+    const acceptHeader = (headers['accept'] || '').toLowerCase();
+    if (acceptHeader.includes('application/json') || (req.query && req.query.format === 'json')) {
+      return res.json({
+        success: true,
+        verified: true,
+        deliveryUrl: DRIVE_VIEW_URL,
+        downloadUrl: DRIVE_DOWNLOAD_URL
+      }, 200, corsHeaders);
+    }
+
+    return res.text('', 302, {
+      ...corsHeaders,
+      'Location': targetUrl,
+      'Cache-Control': 'no-store, no-cache, must-revalidate'
+    });
+  }
+
   // Get Public Checkout Details for Paywall (/api/v1/checkout/:orderId)
   if (path.includes('/api/v1/checkout/') && method === 'GET') {
     const parts = path.split('/');
