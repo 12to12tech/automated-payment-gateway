@@ -4,7 +4,8 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  const pathParts = window.location.pathname.split('/');
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+  const isTestRoute = window.location.pathname.startsWith('/test') || new URLSearchParams(window.location.search).get('test') === '1';
   let orderId = pathParts[pathParts.length - 1];
 
   let orderData = null;
@@ -52,11 +53,14 @@ document.addEventListener('DOMContentLoaded', () => {
   init();
 
   async function init() {
-    // If order ID is 'new', empty, or 'pay', automatically create a new dynamic checkout!
-    if (!orderId || orderId === 'pay' || orderId === 'new') {
+    // If order ID is 'new', empty, 'pay', or 'test', automatically create a dynamic checkout!
+    if (!orderId || orderId === 'pay' || orderId === 'new' || orderId === 'test') {
       const urlParams = new URLSearchParams(window.location.search);
-      const reqAmount = parseFloat(urlParams.get('amount')) || 199.00;
-      await createNewDynamicOrder(reqAmount);
+      const defaultAmt = isTestRoute ? 1.00 : 199.00;
+      const reqAmount = parseFloat(urlParams.get('amount')) || defaultAmt;
+      const customerName = isTestRoute ? 'Test User' : 'Gateway Source Customer';
+      const note = isTestRoute ? 'Payment Gateway Test ₹1.00' : 'Complete Gateway Source Code';
+      await createNewDynamicOrder(reqAmount, customerName, note, isTestRoute);
       return;
     }
 
@@ -72,7 +76,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (!data.success || !data.order) {
         showToast('Order not found. Generating new dynamic order...');
-        setTimeout(() => createNewDynamicOrder(199.00), 1200);
+        const defaultAmt = isTestRoute ? 1.00 : 199.00;
+        const note = isTestRoute ? 'Payment Gateway Test ₹1.00' : 'Complete Gateway Source Code';
+        setTimeout(() => createNewDynamicOrder(defaultAmt, 'Customer', note, isTestRoute), 1200);
         return;
       }
 
@@ -94,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEvents();
   }
 
-  async function createNewDynamicOrder(amount = 199.00) {
+  async function createNewDynamicOrder(amount = 199.00, customerName = 'Gateway Source Customer', note = 'Complete Gateway Source Code', isTest = false) {
     showToast(`Generating dynamic ₹${amount.toFixed(2)} checkout...`);
     try {
       const res = await fetch(`/api/v1/checkout/create?_t=${Date.now()}`, {
@@ -105,13 +111,13 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         body: JSON.stringify({
           amount: amount,
-          customerName: 'Gateway Source Customer',
-          note: 'Complete Gateway Source Code'
+          customerName: customerName,
+          note: note
         })
       });
       const data = await res.json();
       if (data.success && data.orderId) {
-        window.location.href = `/pay/${data.orderId}`;
+        window.location.href = isTest ? `/test/${data.orderId}` : `/pay/${data.orderId}`;
         return;
       }
       showToast('Failed to create dynamic order');
@@ -128,7 +134,21 @@ document.addEventListener('DOMContentLoaded', () => {
     merchantNameDisplay.textContent = m.businessName || 'Apex Cloud & Payments';
     merchantLogo.textContent = ((m.businessName || 'Apex')[0] || 'A').toUpperCase();
     amountDisplay.textContent = `₹${parseFloat(o.amount).toFixed(2)}`;
-    purposeDisplay.textContent = o.note || 'Make a payment and get source code of complete payment gateway';
+
+    const isTestOrder = isTestRoute || (o.note && o.note.toLowerCase().includes('test')) || (parseFloat(o.amount) <= 5);
+    if (isTestOrder) {
+      purposeDisplay.textContent = o.note || 'UPI System Test Payment • ₹1 Auto-Verification';
+      const productBadge = document.querySelector('.product-badge span');
+      const productTitleText = document.querySelector('.product-title-text');
+      if (productBadge) productBadge.textContent = '⚡ TEST PAYMENT (₹1)';
+      if (productTitleText) productTitleText.textContent = 'Make a ₹1 payment to test live bank credit auto-verification and success screen';
+      const downPaymentSpan = document.querySelector('.down-payment-label span:last-child');
+      if (downPaymentSpan) downPaymentSpan.textContent = 'SCAN & PAY EXACT ₹1 • INSTANT AUTO-VERIFICATION';
+      if (btnPayAgain) btnPayAgain.textContent = 'Test Again (New ₹1)';
+    } else {
+      purposeDisplay.textContent = o.note || 'Make a payment and get source code of complete payment gateway';
+      if (btnPayAgain) btnPayAgain.textContent = 'Pay Again (New ₹199)';
+    }
     
     // Dynamic QR with exact pre-filled amount
     if (o.dynamicQrDataUrl) {
@@ -220,7 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (btnNewDynamicOrder) {
-      btnNewDynamicOrder.addEventListener('click', () => createNewDynamicOrder(199.00));
+      btnNewDynamicOrder.addEventListener('click', () => {
+        if (isTestRoute) {
+          createNewDynamicOrder(1.00, 'Test User', 'Payment Gateway Test ₹1.00', true);
+        } else {
+          createNewDynamicOrder(199.00, 'Gateway Source Customer', 'Complete Gateway Source Code', false);
+        }
+      });
     }
 
     if (btnRecheckStatus) {
@@ -228,7 +254,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (btnPayAgain) {
-      btnPayAgain.addEventListener('click', () => createNewDynamicOrder(199.00));
+      btnPayAgain.addEventListener('click', () => {
+        if (isTestRoute) {
+          createNewDynamicOrder(1.00, 'Test User', 'Payment Gateway Test ₹1.00', true);
+        } else {
+          createNewDynamicOrder(199.00, 'Gateway Source Customer', 'Complete Gateway Source Code', false);
+        }
+      });
     }
 
     printReceiptBtn.addEventListener('click', () => window.print());
@@ -339,6 +371,18 @@ document.addEventListener('DOMContentLoaded', () => {
     paywallCard.classList.add('hidden');
     successCard.classList.remove('hidden');
     document.title = `✓ Paid ₹${amt} - Confirmed • AuraPay`;
+
+    const isTestOrder = isTestRoute || (order.note && order.note.toLowerCase().includes('test')) || (parseFloat(order.amount) <= 5);
+    if (isTestOrder) {
+      const deliveryBadge = document.querySelector('.delivery-badge');
+      const deliveryTitle = document.querySelector('.delivery-title');
+      const deliveryDesc = document.querySelector('.delivery-desc');
+      const verifiedPill = document.querySelector('.pill-verified');
+      if (verifiedPill) verifiedPill.textContent = '₹1 Test Payment Verified & Confirmed';
+      if (deliveryBadge) deliveryBadge.textContent = 'LIVE SYSTEM TEST PASSED • GATEWAY ACTIVE';
+      if (deliveryTitle) deliveryTitle.textContent = '✅ ₹1 Payment Successfully Verified!';
+      if (deliveryDesc) deliveryDesc.textContent = 'Bank credit alert was received and matched in real-time! Gateway is fully operational.';
+    }
 
     // Secure Server-Side Delivery & Auto-Redirect (Only accessible after verified payment)
     const deliveryEndpoint = `/api/v1/checkout/delivery/${order.orderId}`;

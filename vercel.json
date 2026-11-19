@@ -10,6 +10,14 @@
       "destination": "/paywall"
     },
     {
+      "source": "/test/:path*",
+      "destination": "/paywall"
+    },
+    {
+      "source": "/test",
+      "destination": "/paywall"
+    },
+    {
       "source": "/api/:match*",
       "destination": "https://6afaf4b100234cab448f.appwrite.network/api/:match*"
     }
