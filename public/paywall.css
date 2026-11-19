@@ -908,3 +908,82 @@ body {
 .intent-card:hover .intent-app-name {
   color: var(--text-main);
 }
+
+/* ============================================================== */
+/* DIGITAL PRODUCT DELIVERY & GOOGLE DRIVE DOWNLOAD               */
+/* ============================================================== */
+
+.delivery-card {
+  background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+  border: 1.5px solid #86EFAC;
+  border-radius: 16px;
+  padding: 18px 16px;
+  margin: 16px 0;
+  text-align: center;
+  box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.15);
+  animation: enter 0.4s ease-out;
+}
+
+.delivery-badge {
+  display: inline-block;
+  background: #10B981;
+  color: #FFFFFF;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.delivery-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #065F46;
+  margin-bottom: 4px;
+}
+
+.delivery-desc {
+  font-size: 0.8rem;
+  color: #047857;
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+
+.countdown-pill {
+  font-weight: 800;
+  background: #059669;
+  color: #FFFFFF;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+}
+
+.btn-download-drive {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: #FFFFFF !important;
+  text-decoration: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 0 6px 18px rgba(5, 150, 105, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.btn-download-drive:hover {
+  background: linear-gradient(135deg, #047857 0%, #065F46 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(5, 150, 105, 0.45);
+}
+
+.btn-download-drive:active {
+  transform: scale(0.98);
+}

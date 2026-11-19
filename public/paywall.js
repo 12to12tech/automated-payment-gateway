@@ -4,6 +4,9 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  const DRIVE_VIEW_URL = 'https://drive.google.com/file/d/17kwNVuo_KY9XiRi5ohNXdo93CeQr0d3I/view?usp=sharing';
+  const DRIVE_DOWNLOAD_URL = 'https://drive.google.com/uc?export=download&id=17kwNVuo_KY9XiRi5ohNXdo93CeQr0d3I';
+
   const pathParts = window.location.pathname.split('/');
   let orderId = pathParts[pathParts.length - 1];
 
@@ -12,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let timerSeconds = 300;
   let pollTimer = null;
   let countdownTimer = null;
+  let redirectTimer = null;
 
   // DOM Elements
   const paywallCard = document.getElementById('paywallCard');
@@ -53,7 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
   async function init() {
     // If order ID is 'new', empty, or 'pay', automatically create a new dynamic checkout!
     if (!orderId || orderId === 'pay' || orderId === 'new') {
-      await createNewDynamicOrder(1.00);
+      const urlParams = new URLSearchParams(window.location.search);
+      const reqAmount = parseFloat(urlParams.get('amount')) || 199.00;
+      await createNewDynamicOrder(reqAmount);
       return;
     }
 
@@ -69,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (!data.success || !data.order) {
         showToast('Order not found. Generating new dynamic order...');
-        setTimeout(() => createNewDynamicOrder(1.00), 1200);
+        setTimeout(() => createNewDynamicOrder(199.00), 1200);
         return;
       }
 
@@ -91,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEvents();
   }
 
-  async function createNewDynamicOrder(amount = 1.00) {
+  async function createNewDynamicOrder(amount = 199.00) {
     showToast(`Generating dynamic ₹${amount.toFixed(2)} checkout...`);
     try {
       const res = await fetch(`/api/v1/checkout/create?_t=${Date.now()}`, {
@@ -102,8 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         body: JSON.stringify({
           amount: amount,
-          customerName: 'UPI Customer',
-          note: `Checkout ₹${amount.toFixed(2)}`
+          customerName: 'Drive File Customer',
+          note: `Drive File ₹${amount.toFixed(2)}`
         })
       });
       const data = await res.json();
@@ -217,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (btnNewDynamicOrder) {
-      btnNewDynamicOrder.addEventListener('click', () => createNewDynamicOrder(1.00));
+      btnNewDynamicOrder.addEventListener('click', () => createNewDynamicOrder(199.00));
     }
 
     if (btnRecheckStatus) {
@@ -225,12 +231,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (btnPayAgain) {
-      btnPayAgain.addEventListener('click', () => createNewDynamicOrder(1.00));
+      btnPayAgain.addEventListener('click', () => createNewDynamicOrder(199.00));
     }
 
     printReceiptBtn.addEventListener('click', () => window.print());
     returnMerchantBtn.addEventListener('click', () => {
-      window.location.href = '/';
+      window.location.href = DRIVE_VIEW_URL;
     });
   }
 
@@ -336,6 +342,45 @@ document.addEventListener('DOMContentLoaded', () => {
     paywallCard.classList.add('hidden');
     successCard.classList.remove('hidden');
     document.title = `✓ Paid ₹${amt} - Confirmed • AuraPay`;
+
+    // Configure Google Drive Download & Auto-Redirect
+    const btnDownloadDrive = document.getElementById('btnDownloadDrive');
+    if (btnDownloadDrive) {
+      btnDownloadDrive.href = DRIVE_VIEW_URL;
+      btnDownloadDrive.addEventListener('click', () => {
+        triggerDirectDownload();
+      });
+    }
+
+    let countdown = 3;
+    const countdownEl = document.getElementById('redirectCountdown');
+    if (redirectTimer) clearInterval(redirectTimer);
+    redirectTimer = setInterval(() => {
+      countdown--;
+      if (countdownEl) {
+        countdownEl.textContent = `${countdown}s`;
+      }
+      if (countdown <= 0) {
+        clearInterval(redirectTimer);
+        // Attempt direct download on customer's phone/browser
+        triggerDirectDownload();
+        // Redirect directly to Google Drive viewer/file
+        window.location.href = DRIVE_VIEW_URL;
+      }
+    }, 1000);
+  }
+
+  function triggerDirectDownload() {
+    try {
+      const a = document.createElement('a');
+      a.href = DRIVE_DOWNLOAD_URL;
+      a.download = '';
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => a.remove(), 1000);
+    } catch (e) {}
   }
 
   function playSuccessChime() {

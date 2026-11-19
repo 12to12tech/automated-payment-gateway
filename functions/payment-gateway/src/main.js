@@ -115,8 +115,8 @@ module.exports = async ({ req, res, log, error }) => {
     }
 
     const { amount, customerName, customerEmail, note } = body;
-    const baseAmount = parseFloat(amount || (req.query && req.query.amount) || 1.00);
-    const numAmount = isNaN(baseAmount) || baseAmount <= 0 ? 1.00 : baseAmount;
+    const baseAmount = parseFloat(amount || (req.query && req.query.amount) || 199.00);
+    const numAmount = isNaN(baseAmount) || baseAmount <= 0 ? 199.00 : baseAmount;
 
     // Concurrency Slot Allocation: Check active PENDING orders in the last 15 mins
     const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);

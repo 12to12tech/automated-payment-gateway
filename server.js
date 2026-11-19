@@ -326,7 +326,7 @@ app.post('/api/v1/checkout/create', async (req, res) => {
   }
 
   const { amount, customerName, customerEmail, note } = req.body;
-  const numAmount = parseFloat(amount || 1.00);
+  const numAmount = parseFloat(amount || 199.00);
   if (isNaN(numAmount) || numAmount <= 0) {
     return res.status(400).json({ error: 'Invalid amount' });
   }
