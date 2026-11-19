@@ -108,8 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         body: JSON.stringify({
           amount: amount,
-          customerName: 'Drive File Customer',
-          note: `Drive File ₹${amount.toFixed(2)}`
+          customerName: 'Gateway Source Customer',
+          note: 'Complete Gateway Source Code'
         })
       });
       const data = await res.json();
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
     merchantNameDisplay.textContent = m.businessName || 'Apex Cloud & Payments';
     merchantLogo.textContent = ((m.businessName || 'Apex')[0] || 'A').toUpperCase();
     amountDisplay.textContent = `₹${parseFloat(o.amount).toFixed(2)}`;
-    purposeDisplay.textContent = o.note || `Order #${o.orderId || o.orderCode}`;
+    purposeDisplay.textContent = o.note || 'Make a payment and get source code of complete payment gateway';
     
     // Dynamic QR with exact pre-filled amount
     if (o.dynamicQrDataUrl) {
