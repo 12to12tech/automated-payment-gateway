@@ -157,6 +157,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     upiIdDisplay.textContent = m.upiId || '8789601387@fam';
 
+    // Show PhonePe intent specifically on test route (/test/new or ₹1 test payments)
+    const btnPhonePe = document.getElementById('btnPhonePe');
+    if (btnPhonePe) {
+      btnPhonePe.style.display = isTestOrder ? 'flex' : 'none';
+    }
+
     // 1-Tap Mobile Intent Deep-Links configuration
     if (typeof window.setupUpiIntentLinks === 'function') {
       window.setupUpiIntentLinks(o);
@@ -182,7 +188,34 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnPayDirect) btnPayDirect.href = rawUri;
     if (btnFamPay) btnFamPay.href = rawUri;
     if (btnGPay) btnGPay.href = `tez://upi/pay?${upiParams}`;
-    if (btnPhonePe) btnPhonePe.href = `phonepe://pay?${upiParams}`;
+
+    if (btnPhonePe) {
+      const vpaMatch = rawUri.match(/pa=([^&]+)/);
+      const nameMatch = rawUri.match(/pn=([^&]+)/);
+      const amtMatch = rawUri.match(/am=([^&]+)/);
+      const noteMatch = rawUri.match(/tn=([^&]+)/);
+
+      const cleanVpa = vpaMatch ? vpaMatch[1] : '8789601387@fam';
+      const cleanName = nameMatch ? nameMatch[1] : 'Monu%20Kumar';
+      const cleanAmt = amtMatch ? amtMatch[1] : Number(order.amount || 1.00).toFixed(2);
+      const cleanNote = noteMatch ? noteMatch[1] : 'Test%20Payment';
+
+      const phonePeParams = `pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmt}&cu=INR&tn=${cleanNote}`;
+      const phonePeIntentUrl = isAndroid
+        ? `intent://pay?${phonePeParams}#Intent;scheme=upi;package=com.phonepe.app;end`
+        : `phonepe://pay?${phonePeParams}`;
+
+      btnPhonePe.href = phonePeIntentUrl;
+      btnPhonePe.onclick = (e) => {
+        if (isAndroid) {
+          e.preventDefault();
+          window.location.href = phonePeIntentUrl;
+          setTimeout(() => {
+            window.location.href = `phonepe://pay?${phonePeParams}`;
+          }, 500);
+        }
+      };
+    }
     if (btnPaytm) {
       btnPaytm.href = isAndroid
         ? `intent://pay?${upiParams}#Intent;scheme=upi;package=net.one97.paytm;end`

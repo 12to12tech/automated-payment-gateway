@@ -37,10 +37,36 @@ function setupUpiIntentLinks(order) {
     btnGPay.href = `tez://upi/pay?${upiParams}`;
   }
 
-  // 3. PhonePe
+  // 3. PhonePe: Explicit Android Intent package targeting with clean P2P params (omits mode & tr to avoid risk rejection)
   const btnPhonePe = document.getElementById('btnPhonePe');
   if (btnPhonePe) {
-    btnPhonePe.href = `phonepe://pay?${upiParams}`;
+    const vpaMatch = rawUri.match(/pa=([^&]+)/);
+    const nameMatch = rawUri.match(/pn=([^&]+)/);
+    const amtMatch = rawUri.match(/am=([^&]+)/);
+    const noteMatch = rawUri.match(/tn=([^&]+)/);
+
+    const cleanVpa = vpaMatch ? vpaMatch[1] : '8789601387@fam';
+    const cleanName = nameMatch ? nameMatch[1] : 'Monu%20Kumar';
+    const cleanAmt = amtMatch ? amtMatch[1] : Number(order.amount || 1.00).toFixed(2);
+    const cleanNote = noteMatch ? noteMatch[1] : 'Test%20Payment';
+
+    // PhonePe strictly accepts P2P params without mode=00 or merchant refs on personal handles
+    const phonePeParams = `pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmt}&cu=INR&tn=${cleanNote}`;
+    const phonePeIntentUrl = isAndroid
+      ? `intent://pay?${phonePeParams}#Intent;scheme=upi;package=com.phonepe.app;end`
+      : `phonepe://pay?${phonePeParams}`;
+
+    btnPhonePe.href = phonePeIntentUrl;
+
+    btnPhonePe.onclick = (e) => {
+      if (isAndroid) {
+        e.preventDefault();
+        window.location.href = phonePeIntentUrl;
+        setTimeout(() => {
+          window.location.href = `phonepe://pay?${phonePeParams}`;
+        }, 500);
+      }
+    };
   }
 
   // 4. Paytm: Uses Android Intent URL with explicit package targeting on Android, fallback for iOS
