@@ -37,7 +37,7 @@ function setupUpiIntentLinks(order) {
     btnGPay.href = `tez://upi/pay?${upiParams}`;
   }
 
-  // 3. PhonePe: Explicit Android Intent package targeting with clean P2P params (omits mode & tr to avoid risk rejection)
+  // 3. PhonePe: Pure Direct Deep Link (phonepe://) with clean P2P prefilled params (no intent wrapper, no mode/tr)
   const btnPhonePe = document.getElementById('btnPhonePe');
   if (btnPhonePe) {
     const vpaMatch = rawUri.match(/pa=([^&]+)/);
@@ -48,25 +48,12 @@ function setupUpiIntentLinks(order) {
     const cleanVpa = vpaMatch ? vpaMatch[1] : '8789601387@fam';
     const cleanName = nameMatch ? nameMatch[1] : 'Monu%20Kumar';
     const cleanAmt = amtMatch ? amtMatch[1] : Number(order.amount || 1.00).toFixed(2);
-    const cleanNote = noteMatch ? noteMatch[1] : 'Test%20Payment';
+    const cleanNote = noteMatch ? noteMatch[1] : 'Payment';
 
-    // PhonePe strictly accepts P2P params without mode=00 or merchant refs on personal handles
-    const phonePeParams = `pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmt}&cu=INR&tn=${cleanNote}`;
-    const phonePeIntentUrl = isAndroid
-      ? `intent://pay?${phonePeParams}#Intent;scheme=upi;package=com.phonepe.app;end`
-      : `phonepe://pay?${phonePeParams}`;
-
-    btnPhonePe.href = phonePeIntentUrl;
-
-    btnPhonePe.onclick = (e) => {
-      if (isAndroid) {
-        e.preventDefault();
-        window.location.href = phonePeIntentUrl;
-        setTimeout(() => {
-          window.location.href = `phonepe://pay?${phonePeParams}`;
-        }, 500);
-      }
-    };
+    // Direct PhonePe deep link with clean P2P parameters so PhonePe opens directly without rejection
+    const phonePeDeepLink = `phonepe://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmt}&cu=INR&tn=${cleanNote}`;
+    btnPhonePe.href = phonePeDeepLink;
+    btnPhonePe.onclick = null;
   }
 
   // 4. Paytm: Uses Android Intent URL with explicit package targeting on Android, fallback for iOS

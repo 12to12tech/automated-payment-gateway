@@ -200,21 +200,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const cleanAmt = amtMatch ? amtMatch[1] : Number(order.amount || 1.00).toFixed(2);
       const cleanNote = noteMatch ? noteMatch[1] : 'Test%20Payment';
 
-      const phonePeParams = `pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmt}&cu=INR&tn=${cleanNote}`;
-      const phonePeIntentUrl = isAndroid
-        ? `intent://pay?${phonePeParams}#Intent;scheme=upi;package=com.phonepe.app;end`
-        : `phonepe://pay?${phonePeParams}`;
-
-      btnPhonePe.href = phonePeIntentUrl;
-      btnPhonePe.onclick = (e) => {
-        if (isAndroid) {
-          e.preventDefault();
-          window.location.href = phonePeIntentUrl;
-          setTimeout(() => {
-            window.location.href = `phonepe://pay?${phonePeParams}`;
-          }, 500);
-        }
-      };
+      // Pure direct PhonePe deep link with clean pre-filled parameters (no intent wrapper, no mode/tr)
+      const phonePeDeepLink = `phonepe://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmt}&cu=INR&tn=${cleanNote}`;
+      btnPhonePe.href = phonePeDeepLink;
+      btnPhonePe.onclick = null;
     }
     if (btnPaytm) {
       btnPaytm.href = isAndroid
