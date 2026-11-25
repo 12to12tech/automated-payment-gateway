@@ -17,7 +17,7 @@ function safeDecode(value) {
 
 /**
  * Read the QR a bank issues for a merchant UPI ID, e.g.
- *   upi://pay?ver=01&mode=01&orgid=180071&pa=shop@bank&pn=SHOP PVT LTD&mc=2741&mid=...&mtid=...&qrMedium=04
+ *   upi://pay?ver=01&mode=01&orgid=...&pa=shop@bank&pn=SHOP PVT LTD&mc=...&mid=...&mtid=...&qrMedium=04
  * Returns the UPI ID, the registered payee name and the merchant fields (mc, mid, mtid, orgid ...)
  * that UPI apps expect on every payment request to a merchant account.
  */
