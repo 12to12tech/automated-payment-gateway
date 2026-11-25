@@ -726,7 +726,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <tr>
           <td class="font-mono"><strong>${o.orderId}</strong></td>
-          <td>${escapeHtml(o.customerName || 'Customer')}</td>
+          <td>
+            ${escapeHtml(o.customerName || 'Customer')}
+            ${o.customerPhone ? `<div class="font-mono" style="font-size: 0.75rem; color: #64748B;">${escapeHtml(o.customerPhone)}</div>` : ''}
+            ${o.customerEmail ? `<div style="font-size: 0.75rem; color: #64748B;">${escapeHtml(o.customerEmail)}</div>` : ''}
+          </td>
           <td><strong>₹${parseFloat(o.amount).toFixed(2)}</strong></td>
           <td class="font-mono text-emerald">${utr}</td>
           <td>${time}</td>

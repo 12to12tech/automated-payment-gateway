@@ -34,6 +34,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitUtrBtn = document.getElementById('submitUtrBtn');
   const toastBox = document.getElementById('toastBox');
 
+  // Customer details form (shown before the QR)
+  const paymentSection = document.getElementById('paymentSection');
+  const customerGate = document.getElementById('customerGate');
+  const custName = document.getElementById('custName');
+  const custPhone = document.getElementById('custPhone');
+  const custEmail = document.getElementById('custEmail');
+  const custError = document.getElementById('custError');
+  const custSubmitBtn = document.getElementById('custSubmitBtn');
+
   // Dynamic & Re-check Buttons
   const btnNewDynamicOrder = document.getElementById('btnNewDynamicOrder');
   const btnRecheckStatus = document.getElementById('btnRecheckStatus');
@@ -90,14 +99,82 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      startTimers();
-      setupSSE();
-      startPolling();
+      if (data.order.customerDetailsCollected) {
+        beginPayment();
+      } else {
+        showCustomerForm(data.order);
+      }
     } catch (e) {
       showToast('Could not load checkout order');
     }
 
     setupEvents();
+  }
+
+  // Reveal the QR / pay buttons and start listening for the payment
+  function beginPayment() {
+    customerGate.classList.add('hidden');
+    paymentSection.classList.remove('hidden');
+    startTimers();
+    setupSSE();
+    startPolling();
+  }
+
+  // On a phone, jump straight into the UPI app with payee, amount and remark pre-filled.
+  // Must run right after the customer's tap: browsers block app links that open on their own.
+  function autoOpenUpiApp() {
+    const isPhone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+    const upiUri = orderData && orderData.order && orderData.order.dynamicUpiUrl;
+    if (!isPhone || !upiUri) return;
+    showToast('Opening your UPI app...');
+    window.location.href = upiUri;
+  }
+
+  function showCustomerForm(order) {
+    const placeholderNames = ['Customer', 'Test User', 'Demo Customer', 'Gateway Source Customer'];
+    if (order.customerName && !placeholderNames.includes(order.customerName)) {
+      custName.value = order.customerName;
+    }
+    customerGate.classList.remove('hidden');
+
+    customerGate.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fields = { name: custName, phone: custPhone, email: custEmail };
+      Object.values(fields).forEach(f => f.classList.remove('is-invalid'));
+      custError.classList.add('hidden');
+
+      custSubmitBtn.disabled = true;
+      custSubmitBtn.textContent = 'Saving...';
+      try {
+        const res = await fetch(`/api/v1/checkout/${encodeURIComponent(orderId)}/customer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: custName.value,
+            phone: custPhone.value,
+            email: custEmail.value
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          beginPayment();
+          autoOpenUpiApp();
+          return;
+        }
+        const errors = data.errors || {};
+        Object.keys(errors).forEach(k => fields[k] && fields[k].classList.add('is-invalid'));
+        custError.textContent = Object.values(errors).join('. ') || data.error || 'Could not save your details. Please try again.';
+        custError.classList.remove('hidden');
+        const firstBad = Object.keys(errors).map(k => fields[k]).find(Boolean);
+        if (firstBad) firstBad.focus();
+      } catch (err) {
+        custError.textContent = 'Could not save your details. Check your connection and try again.';
+        custError.classList.remove('hidden');
+      } finally {
+        custSubmitBtn.disabled = false;
+        custSubmitBtn.textContent = 'Continue to payment';
+      }
+    });
   }
 
   async function createNewDynamicOrder(amount = 199.00, customerName = 'Gateway Source Customer', note = 'Complete Gateway Source Code', isTest = false) {
@@ -156,12 +233,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     upiIdDisplay.textContent = m.upiId || '8789601387@fam';
-
-    // Show PhonePe intent specifically on test route (/test/new or ₹1 test payments)
-    const btnPhonePe = document.getElementById('btnPhonePe');
-    if (btnPhonePe) {
-      btnPhonePe.style.display = isTestOrder ? 'flex' : 'none';
-    }
 
     // 1-Tap Mobile Intent Deep-Links configuration
     if (typeof window.setupUpiIntentLinks === 'function') {

@@ -410,7 +410,8 @@ app.get('/api/v1/checkout/:orderId', async (req, res) => {
       dynamicUpiUrl: order.dynamicUpiUrl,
       dynamicQrDataUrl: order.dynamicQrDataUrl,
       verifiedAt: order.verifiedAt,
-      paymentDetails: order.paymentDetails
+      paymentDetails: order.paymentDetails,
+      customerDetailsCollected: Boolean(order.customerDetailsAt)
     },
     merchant: {
       businessName: merchant ? merchant.businessName : 'Merchant Payee',
@@ -418,6 +419,38 @@ app.get('/api/v1/checkout/:orderId', async (req, res) => {
       qrImagePath: merchant ? merchant.qrImagePath : '/uploads/default-qr.jpeg'
     }
   });
+});
+
+// Save customer contact details entered on the checkout page (before payment)
+app.post('/api/v1/checkout/:orderId/customer', (req, res) => {
+  const order = store.getOrder(req.params.orderId);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  if (order.status !== 'PENDING') {
+    return res.status(409).json({ error: 'This order is already completed' });
+  }
+
+  const body = req.body || {};
+  const name = String(body.name || '').replace(/\s+/g, ' ').trim();
+  const email = String(body.email || '').trim().toLowerCase();
+  // Accept "+91 98765 43210", "09876543210", "9876543210" and keep the 10-digit number
+  const phone = String(body.phone || '').replace(/\D/g, '').replace(/^(91|0)(?=\d{10}$)/, '');
+
+  const errors = {};
+  if (name.length < 2 || name.length > 80) errors.name = 'Enter your full name';
+  if (!/^[6-9]\d{9}$/.test(phone)) errors.phone = 'Enter a valid 10-digit mobile number';
+  if (email.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) errors.email = 'Enter a valid email address';
+  if (Object.keys(errors).length > 0) {
+    return res.status(400).json({ success: false, error: Object.values(errors)[0], errors });
+  }
+
+  store.updateOrder(order.orderId, {
+    customerName: name,
+    customerPhone: phone,
+    customerEmail: email,
+    customerDetailsAt: new Date().toISOString()
+  });
+
+  res.json({ success: true });
 });
 
 // Check payment verification status for an order

@@ -1024,3 +1024,92 @@ body {
 .btn-download-drive:active {
   transform: scale(0.98);
 }
+
+/* ============================================================
+   Customer details form (shown before the QR)
+   ============================================================ */
+.customer-gate {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+
+.customer-gate.hidden {
+  display: none;
+}
+
+.customer-gate-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.customer-gate-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 4px 0 6px;
+}
+
+.customer-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin: 12px 0 6px;
+}
+
+.customer-field {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  font-family: var(--font-sans);
+  font-size: 1rem; /* 16px keeps iOS from zooming the page on focus */
+  color: var(--text-main);
+  background: #FFFFFF;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  outline: none;
+}
+
+.customer-field:focus {
+  border-color: #2563EB;
+}
+
+.customer-field.is-invalid {
+  border-color: #DC2626;
+}
+
+.customer-error {
+  margin-top: 12px;
+  padding: 9px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #B91C1C;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+}
+
+.customer-submit {
+  width: 100%;
+  margin-top: 16px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+
+.customer-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* App logo inside the round badge; the letter stays as a fallback if the logo fails to load */
+.intent-app-logo {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
+}
+
+.intent-app-logo + .intent-app-initial {
+  display: none;
+}

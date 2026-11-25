@@ -46,6 +46,28 @@
         <div class="amount-purpose" id="purposeDisplay">Make a payment and get source code of complete payment gateway</div>
       </div>
 
+      <!-- Customer Details (collected before the QR is shown) -->
+      <form class="customer-gate hidden" id="customerGate" novalidate>
+        <h3 class="customer-gate-title">Your details</h3>
+        <p class="customer-gate-sub">Enter your details to continue to payment.</p>
+
+        <label class="customer-label" for="custName">Full name</label>
+        <input type="text" id="custName" class="customer-field" autocomplete="name" maxlength="80" placeholder="Your full name" required>
+
+        <label class="customer-label" for="custPhone">Mobile number</label>
+        <input type="tel" id="custPhone" class="customer-field" autocomplete="tel" inputmode="numeric" maxlength="16" placeholder="10-digit mobile number" required>
+
+        <label class="customer-label" for="custEmail">Email</label>
+        <input type="email" id="custEmail" class="customer-field" autocomplete="email" maxlength="120" placeholder="you@example.com" required>
+
+        <div class="customer-error hidden" id="custError" role="alert"></div>
+
+        <button type="submit" class="btn-intent-primary customer-submit" id="custSubmitBtn">Continue to payment</button>
+      </form>
+
+      <!-- Payment section (revealed once customer details are saved) -->
+      <div id="paymentSection" class="hidden">
+
       <!-- Digital Product Highlight Banner -->
       <div class="product-highlight-banner">
         <div class="product-badge">
@@ -89,8 +111,17 @@
 
         <!-- App-Specific Dedicated Deep-Links -->
         <div class="intent-grid">
-          <a id="btnPhonePe" class="intent-card app-phonepe" href="#" style="display: none;">
+          <a id="btnGPay" class="intent-card app-gpay" href="#">
+            <div class="intent-icon-wrap" style="background: #4285f4;">
+              <img class="intent-app-logo" src="https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/googlepay.svg" alt="" onerror="this.remove()">
+              <span class="intent-app-initial">G</span>
+            </div>
+            <span class="intent-app-name">Google Pay</span>
+          </a>
+
+          <a id="btnPhonePe" class="intent-card app-phonepe" href="#">
             <div class="intent-icon-wrap" style="background: #5f259f;">
+              <img class="intent-app-logo" src="https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/phonepe.svg" alt="" onerror="this.remove()">
               <span class="intent-app-initial">P</span>
             </div>
             <span class="intent-app-name">PhonePe</span>
@@ -98,6 +129,7 @@
 
           <a id="btnPaytm" class="intent-card app-paytm" href="#">
             <div class="intent-icon-wrap" style="background: #00baf2;">
+              <img class="intent-app-logo" src="https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/paytm.svg" alt="" onerror="this.remove()">
               <span class="intent-app-initial" style="font-size: 10px;">Pay</span>
             </div>
             <span class="intent-app-name">Paytm</span>
@@ -171,6 +203,9 @@
           </div>
         </div>
       </div>
+
+      </div>
+      <!-- /Payment section -->
 
       <!-- Security Guarantee -->
       <div class="security-foot">

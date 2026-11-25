@@ -22,6 +22,8 @@ const OrderSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   customerName: { type: String, default: 'Customer' },
   customerEmail: { type: String, default: '' },
+  customerPhone: { type: String, default: '' },
+  customerDetailsAt: { type: Date, default: null },
   note: { type: String, default: '' },
   status: { type: String, enum: ['PENDING', 'PAID', 'SUCCESS', 'FAILED'], default: 'PENDING', index: true },
   dynamicUpiUrl: { type: String, default: '' },
