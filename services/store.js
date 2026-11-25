@@ -2,6 +2,16 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { MerchantModel, OrderModel, connectMongo, getIsConnected } = require('./mongo');
+const auth = require('./auth');
+
+const DEFAULT_MERCHANT_ID = 'merch_default';
+// Values that shipped in the public repository. Anyone can read them, so they are never kept.
+const PUBLIC_DEFAULT_PASSWORD = 'password123';
+const PUBLIC_DEFAULT_API_KEY = 'aura_live_9f82b7c41a58e390d4e';
+
+function newApiKey() {
+  return `aura_live_${crypto.randomBytes(16).toString('hex')}`;
+}
 
 // On Vercel the project folder is read-only; only the temp folder can be written to
 const DB_PATH = process.env.VERCEL
@@ -12,12 +22,98 @@ class Store {
   constructor() {
     this.data = {
       merchants: {},
-      orders: {}
+      orders: {},
+      meta: {}
     };
     this.mongoReady = false;
     this.loadLocal();
     this.ensureDefaultMerchant();
+    this.secureExistingRecords();
+    this.ensureSessionSecret();
     this.initMongo();
+  }
+
+  /** True when saved data survives a restart (local file or MongoDB). False on Vercel without MongoDB. */
+  isPersistent() {
+    return this.mongoReady || !process.env.VERCEL;
+  }
+
+  storageLabel() {
+    if (this.mongoReady) return 'MongoDB';
+    return process.env.VERCEL ? 'Memory only (resets when the server restarts)' : 'Local file (data/store.json)';
+  }
+
+  ensureSessionSecret() {
+    if (!process.env.SESSION_SECRET && !this.data.meta.sessionSecret) {
+      this.data.meta.sessionSecret = crypto.randomBytes(32).toString('hex');
+      this.saveLocal();
+    }
+    auth.setSecretProvider(() => process.env.SESSION_SECRET || this.data.meta.sessionSecret);
+  }
+
+  /** Replace the publicly known default password / API key and hash any plain-text passwords. */
+  secureExistingRecords() {
+    let changed = false;
+    for (const m of Object.values(this.data.merchants)) {
+      if (m.apiKey === PUBLIC_DEFAULT_API_KEY) {
+        m.apiKey = newApiKey();
+        changed = true;
+      }
+      if (m.password === PUBLIC_DEFAULT_PASSWORD) {
+        m.password = ''; // sign-in stays off until a real password is set
+        changed = true;
+      } else if (m.password && !auth.isHashed(m.password)) {
+        m.password = auth.hashPassword(m.password);
+        changed = true;
+      }
+    }
+    const admin = this.data.merchants[DEFAULT_MERCHANT_ID];
+    const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
+    if (admin && adminEmail && admin.email !== adminEmail) {
+      admin.email = adminEmail;
+      changed = true;
+    }
+    if (changed) this.saveLocal();
+  }
+
+  /**
+   * Check a sign-in. For the main merchant, ADMIN_PASSWORD (when set) is the password,
+   * which also works as a reset if the saved one is forgotten.
+   */
+  checkPassword(merchant, password) {
+    if (!merchant) return false;
+    const envPassword = process.env.ADMIN_PASSWORD;
+    if (merchant.id === DEFAULT_MERCHANT_ID && envPassword) {
+      return auth.safeEqual(password || '', envPassword);
+    }
+    return auth.verifyPassword(password, merchant.password);
+  }
+
+  passwordIsFromEnv(merchant) {
+    return Boolean(merchant && merchant.id === DEFAULT_MERCHANT_ID && process.env.ADMIN_PASSWORD);
+  }
+
+  setPassword(id, newPassword) {
+    return this.updateMerchant(id, { password: auth.hashPassword(newPassword) });
+  }
+
+  /** Merchant record that is safe to send to the browser: no password, no Gmail App Password. */
+  publicMerchant(m) {
+    if (!m) return null;
+    return {
+      id: m.id,
+      name: m.name,
+      businessName: m.businessName,
+      email: m.email,
+      upiId: m.upiId,
+      qrImagePath: m.qrImagePath,
+      gmailUser: m.gmailUser,
+      hasGmailAppPass: Boolean(m.gmailAppPass),
+      allowedSenders: m.allowedSenders || [],
+      apiKey: m.apiKey,
+      isOnboarded: m.isOnboarded,
+      createdAt: m.createdAt
+    };
   }
 
   loadLocal() {
@@ -27,6 +123,7 @@ class Store {
         this.data = JSON.parse(raw);
         if (!this.data.merchants) this.data.merchants = {};
         if (!this.data.orders) this.data.orders = {};
+        if (!this.data.meta) this.data.meta = {};
       }
     } catch (e) {
       console.warn('[Store] Could not load local store.json, using defaults:', e.message);
@@ -96,19 +193,19 @@ class Store {
 
   ensureDefaultMerchant() {
     if (Object.keys(this.data.merchants).length === 0) {
-      const defaultId = 'merch_default';
-      const defaultApiKey = 'aura_live_9f82b7c41a58e390d4e';
+      const defaultId = DEFAULT_MERCHANT_ID;
       const defaultMerchant = {
         id: defaultId,
         name: process.env.PAYEE_NAME || 'Monu Kumar',
-        email: process.env.GMAIL_USER || 'huntkum@gmail.com',
-        password: 'password123',
+        email: (process.env.ADMIN_EMAIL || process.env.GMAIL_USER || 'huntkum@gmail.com').toLowerCase().trim(),
+        password: '', // sign-in uses ADMIN_PASSWORD until a password is saved from Settings
         businessName: process.env.BUSINESS_NAME || 'Apex Cloud & Payments',
         upiId: process.env.UPI_ID || '8789601387@fam',
         qrImagePath: '/uploads/default-qr.jpeg',
         gmailUser: process.env.GMAIL_USER || 'huntkum@gmail.com',
         gmailAppPass: process.env.GMAIL_APP_PASS || '',
-        apiKey: defaultApiKey,
+        allowedSenders: [],
+        apiKey: newApiKey(),
         isOnboarded: true,
         createdAt: new Date().toISOString()
       };
@@ -119,17 +216,18 @@ class Store {
 
   createMerchant(data) {
     const id = `merch_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
-    const apiKey = `aura_live_${crypto.randomBytes(16).toString('hex')}`;
+    const apiKey = newApiKey();
     const merchant = {
       id,
       name: data.name || 'Merchant',
       email: data.email.toLowerCase().trim(),
-      password: data.password,
+      password: auth.hashPassword(data.password),
       businessName: data.businessName || `${data.name}'s Store`,
       upiId: data.upiId || '8789601387@fam',
       qrImagePath: data.qrImagePath || '/uploads/default-qr.jpeg',
       gmailUser: data.gmailUser || data.email,
       gmailAppPass: data.gmailAppPass || '',
+      allowedSenders: [],
       apiKey,
       isOnboarded: false,
       createdAt: new Date().toISOString()
@@ -138,7 +236,7 @@ class Store {
     this.saveLocal();
 
     // Persist to MongoDB
-    MerchantModel.findOneAndUpdate({ id }, merchant, { upsert: true }).catch(err => {
+    if (this.mongoReady) MerchantModel.findOneAndUpdate({ id }, merchant, { upsert: true }).catch(err => {
       console.error('[Store] Mongo Merchant insert error:', err.message);
     });
 
@@ -167,7 +265,7 @@ class Store {
     this.saveLocal();
 
     // Persist to MongoDB
-    MerchantModel.findOneAndUpdate({ id }, { $set: updates }).catch(err => {
+    if (this.mongoReady) MerchantModel.findOneAndUpdate({ id }, { $set: updates }).catch(err => {
       console.error('[Store] Mongo Merchant update error:', err.message);
     });
 
@@ -175,7 +273,7 @@ class Store {
   }
 
   createOrder(data) {
-    const orderId = `PAY-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+    const orderId = data.orderId || `PAY-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
     const order = {
       orderId,
       merchantId: data.merchantId,
@@ -194,7 +292,7 @@ class Store {
     this.saveLocal();
 
     // Persist to MongoDB
-    OrderModel.findOneAndUpdate({ orderId }, order, { upsert: true }).catch(err => {
+    if (this.mongoReady) OrderModel.findOneAndUpdate({ orderId }, order, { upsert: true }).catch(err => {
       console.error('[Store] Mongo Order insert error:', err.message);
     });
 
@@ -212,11 +310,22 @@ class Store {
     this.saveLocal();
 
     // Persist to MongoDB
-    OrderModel.findOneAndUpdate({ orderId }, { $set: updates }).catch(err => {
+    if (this.mongoReady) OrderModel.findOneAndUpdate({ orderId }, { $set: updates }).catch(err => {
       console.error('[Store] Mongo Order update error:', err.message);
     });
 
     return order;
+  }
+
+  deleteOrder(orderId) {
+    if (!this.data.orders[orderId]) return false;
+    delete this.data.orders[orderId];
+    this.saveLocal();
+
+    if (this.mongoReady) OrderModel.deleteOne({ orderId }).catch(err => {
+      console.error('[Store] Mongo Order delete error:', err.message);
+    });
+    return true;
   }
 
   getOrdersByMerchant(merchantId) {

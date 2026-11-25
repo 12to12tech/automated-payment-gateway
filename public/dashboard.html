@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Dashboard • AuraPay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/dashboard.css">
+</head>
+<body>
+
+  <!-- ============================ SIGN IN ============================ -->
+  <main class="signin" id="signinView" hidden>
+    <form class="signin-card" id="signinForm" novalidate>
+      <div class="brand-mark">A</div>
+      <h1 class="signin-title">Sign in to your dashboard</h1>
+      <p class="signin-sub">Orders, customers, payment verification and settings.</p>
+
+      <label class="field">
+        <span class="field-label">Email</span>
+        <input type="email" id="signinEmail" class="input" autocomplete="username" required>
+      </label>
+      <label class="field">
+        <span class="field-label">Password</span>
+        <input type="password" id="signinPassword" class="input" autocomplete="current-password" required>
+      </label>
+
+      <p class="form-error" id="signinError" role="alert" hidden></p>
+      <p class="notice notice-warning" id="signinSetupHint" hidden>No dashboard password is set on this server yet. Add ADMIN_PASSWORD to the server's .env file (or host environment) and restart.</p>
+
+      <button type="submit" class="btn btn-primary btn-block" id="signinSubmit">Sign in</button>
+      <a class="signin-back" href="/">← Back to the website</a>
+    </form>
+  </main>
+
+  <!-- ============================ APP ============================ -->
+  <div class="app" id="appView" hidden>
+
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark" id="brandMark">A</div>
+        <div class="brand-text">
+          <div class="brand-name" id="brandName">Dashboard</div>
+          <div class="brand-sub">Payments dashboard</div>
+        </div>
+      </div>
+
+      <nav class="nav" id="nav" aria-label="Dashboard sections">
+        <button type="button" class="nav-item" data-view="overview">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          <span>Overview</span>
+        </button>
+        <button type="button" class="nav-item" data-view="orders">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+          <span>Orders</span>
+          <span class="nav-count" id="navWaitingCount" hidden></span>
+        </button>
+        <button type="button" class="nav-item" data-view="customers">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.4 3.2-5.5 6.5-5.5s5.900 2.100 6.500 5.500M16 4.800a3.500 3.500 0 0 1 0 6.400M18.500 14.800c1.700.8 2.800 2.500 3.200 5.200"/></svg>
+          <span>Customers</span>
+        </button>
+        <button type="button" class="nav-item" data-view="verification">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.500-3.200 7.800-8 9-4.800-1.200-8-4.500-8-9V6l8-3z"/><path d="M8.500 12l2.500 2.500 4.500-5"/></svg>
+          <span>Verification</span>
+          <span class="nav-dot" id="navVerifyDot"></span>
+        </button>
+        <button type="button" class="nav-item" data-view="developer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.500 4l-3 16"/></svg>
+          <span>Developer</span>
+        </button>
+        <button type="button" class="nav-item" data-view="settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.400 15a1.700 1.700 0 0 0 .300 1.800l.100.100a2 2 0 1 1-2.800 2.800l-.100-.100a1.700 1.700 0 0 0-1.800-.300 1.700 1.700 0 0 0-1 1.500V21a2 2 0 1 1-4 0v-.100a1.700 1.700 0 0 0-1.100-1.500 1.700 1.700 0 0 0-1.800.300l-.100.100a2 2 0 1 1-2.800-2.800l.100-.100a1.700 1.700 0 0 0 .300-1.800 1.700 1.700 0 0 0-1.500-1H3a2 2 0 1 1 0-4h.100a1.700 1.700 0 0 0 1.500-1.100 1.700 1.700 0 0 0-.300-1.800l-.100-.100a2 2 0 1 1 2.800-2.800l.100.100a1.700 1.700 0 0 0 1.800.300H9a1.700 1.700 0 0 0 1-1.500V3a2 2 0 1 1 4 0v.100a1.700 1.700 0 0 0 1 1.500 1.700 1.700 0 0 0 1.800-.300l.100-.100a2 2 0 1 1 2.800 2.800l-.100.100a1.700 1.700 0 0 0-.300 1.800V9a1.700 1.700 0 0 0 1.500 1H21a2 2 0 1 1 0 4h-.100a1.700 1.700 0 0 0-1.500 1z"/></svg>
+          <span>Settings</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="signed-in-as" id="signedInAs"></div>
+        <button type="button" class="btn btn-ghost btn-block" id="btnSignOut">Sign out</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-titles">
+          <h1 class="page-title" id="pageTitle">Overview</h1>
+          <p class="page-sub" id="pageSub"></p>
+        </div>
+        <div class="topbar-actions">
+          <button type="button" class="status-pill is-off" id="statusPill" title="Open payment verification">
+            <span class="status-dot"></span>
+            <span id="statusPillText">Verification: checking…</span>
+          </button>
+          <button type="button" class="btn btn-primary" id="btnNewLink">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <span>New payment link</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- ---------------- OVERVIEW ---------------- -->
+      <section class="view" data-view-panel="overview" hidden>
+        <div class="attention" id="attentionList"></div>
+
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <div class="split">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Collected per day</h2>
+                <p class="card-sub" id="chartSub">Confirmed payments, last 14 days</p>
+              </div>
+              <button type="button" class="btn btn-small" id="btnChartTable" aria-pressed="false">Show as table</button>
+            </div>
+            <div class="chart-wrap" id="chartWrap">
+              <div class="chart" id="chart" role="img" aria-label="Bar chart of money collected per day for the last 14 days"></div>
+              <div class="chart-tip" id="chartTip" hidden></div>
+            </div>
+            <div class="table-scroll" id="chartTableWrap" hidden>
+              <table class="table table-compact">
+                <thead><tr><th>Day</th><th class="num">Payments</th><th class="num">Collected</th></tr></thead>
+                <tbody id="chartTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Latest orders</h2>
+                <p class="card-sub">Newest first</p>
+              </div>
+              <button type="button" class="btn btn-small" data-go="orders">View all</button>
+            </div>
+            <ul class="order-list" id="latestOrders"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- ORDERS ---------------- -->
+      <section class="view" data-view-panel="orders" hidden>
+        <div class="card">
+          <div class="toolbar">
+            <input type="search" class="input input-search" id="ordersSearch" placeholder="Search order, name, mobile, email, UTR or amount" aria-label="Search orders">
+            <div class="segmented" id="ordersStatus" role="group" aria-label="Filter by status">
+              <button type="button" class="seg active" data-status="ALL">All <span class="seg-count" data-count="ALL"></span></button>
+              <button type="button" class="seg" data-status="PAID">Paid <span class="seg-count" data-count="PAID"></span></button>
+              <button type="button" class="seg" data-status="WAITING">Waiting <span class="seg-count" data-count="WAITING"></span></button>
+              <button type="button" class="seg" data-status="EXPIRED">Expired <span class="seg-count" data-count="EXPIRED"></span></button>
+            </div>
+            <button type="button" class="btn btn-small" id="btnExportCsv">Export CSV</button>
+          </div>
+
+          <div class="table-scroll">
+            <table class="table table-clickable">
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Customer</th>
+                  <th class="num">Amount</th>
+                  <th>Status</th>
+                  <th>Bank reference</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody id="ordersBody"></tbody>
+            </table>
+          </div>
+
+          <div class="pager">
+            <span class="pager-info" id="ordersPagerInfo"></span>
+            <div class="pager-buttons">
+              <button type="button" class="btn btn-small" id="ordersPrev">Previous</button>
+              <button type="button" class="btn btn-small" id="ordersNext">Next</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- CUSTOMERS ---------------- -->
+      <section class="view" data-view-panel="customers" hidden>
+        <div class="card">
+          <div class="toolbar">
+            <input type="search" class="input input-search" id="customersSearch" placeholder="Search name, mobile or email" aria-label="Search customers">
+            <span class="toolbar-note" id="customersCount"></span>
+          </div>
+          <div class="table-scroll">
+            <table class="table table-clickable">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Mobile</th>
+                  <th>Email</th>
+                  <th class="num">Orders</th>
+                  <th class="num">Paid</th>
+                  <th class="num">Total paid</th>
+                  <th>Last order</th>
+                </tr>
+              </thead>
+              <tbody id="customersBody"></tbody>
+            </table>
+          </div>
+          <p class="card-foot">Customers come from the details people enter on the checkout page, grouped by mobile number. Click a row to see their orders.</p>
+        </div>
+      </section>
+
+      <!-- ---------------- VERIFICATION ---------------- -->
+      <section class="view" data-view-panel="verification" hidden>
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Mail stream</h2>
+              <p class="card-sub">The live connection to the Gmail inbox that receives your bank's credit alerts.</p>
+            </div>
+            <div class="head-actions">
+              <button type="button" class="btn btn-small" id="btnReconnect">Reconnect</button>
+              <button type="button" class="btn btn-small" id="btnVerifyRefresh">Refresh</button>
+            </div>
+          </div>
+
+          <div class="banner is-off" id="verifyBanner">
+            <span class="banner-dot"></span>
+            <div>
+              <div class="banner-title" id="verifyTitle">Loading…</div>
+              <div class="banner-sub" id="verifySub"></div>
+            </div>
+          </div>
+
+          <div class="facts" id="verifyFacts"></div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">How an order gets marked paid</h2>
+          <ol class="steps">
+            <li>Each payment link asks for an exact amount. If two unpaid links have the same amount, the newer one gets a few paise added so they differ.</li>
+            <li>The customer pays. Your bank emails a credit alert to the Gmail inbox above.</li>
+            <li>The server reads the alert, takes the amount and bank reference, and looks for an unpaid order with that exact amount created in the last 20 minutes.</li>
+            <li>If one is found, it is marked paid and the customer's page shows the success screen. If not, the alert is listed below as "No order".</li>
+          </ol>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">Payment alerts read from the inbox</h2>
+          <div class="table-scroll">
+            <table class="table">
+              <thead>
+                <tr><th>Time</th><th class="num">Amount</th><th>Payer</th><th>Bank reference</th><th>Email sender</th><th>Matched order</th></tr>
+              </thead>
+              <tbody id="verifyPaymentsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">Activity log</h2>
+          <ul class="log" id="verifyLog"></ul>
+        </div>
+      </section>
+
+      <!-- ---------------- DEVELOPER ---------------- -->
+      <section class="view" data-view-panel="developer" hidden>
+        <div class="card">
+          <h2 class="card-title">API key</h2>
+          <p class="card-sub">Lets your website or app create payment links on this server. Treat it like a password.</p>
+          <div class="key-row">
+            <code class="key-box" id="apiKeyBox">••••••••••••••••</code>
+            <button type="button" class="btn btn-small" id="btnKeyShow">Show</button>
+            <button type="button" class="btn btn-small" id="btnKeyCopy">Copy</button>
+            <button type="button" class="btn btn-small btn-danger-outline" id="btnKeyRegen">Replace key</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">Create a payment link from your code</h2>
+          <p class="card-sub">Send the amount; the reply contains the checkout URL to send your customer to.</p>
+          <pre class="code" id="apiSnippet"></pre>
+          <button type="button" class="btn btn-small" id="btnSnippetCopy">Copy example</button>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">Quick links</h2>
+          <div class="facts" id="devFacts"></div>
+          <div class="head-actions">
+            <a class="btn btn-small" href="/test/new" target="_blank" rel="noopener">Open a ₹1 test checkout</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">Endpoints</h2>
+          <div class="table-scroll">
+            <table class="table table-compact">
+              <thead><tr><th>Method</th><th>Path</th><th>What it does</th><th>Who can call it</th></tr></thead>
+              <tbody id="endpointsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------------- SETTINGS ---------------- -->
+      <section class="view" data-view-panel="settings" hidden>
+        <p class="notice notice-warning" id="settingsNotice" hidden></p>
+
+        <div class="settings-grid">
+          <form class="card form" id="formBusiness" novalidate>
+            <h2 class="card-title">Business &amp; UPI</h2>
+            <p class="card-sub">Shown on the checkout page. Payments go to this UPI ID.</p>
+            <label class="field"><span class="field-label">Business name</span>
+              <input type="text" class="input" id="setBusinessName" maxlength="80"></label>
+            <label class="field"><span class="field-label">Payee name</span>
+              <input type="text" class="input" id="setPayeeName" maxlength="80"></label>
+            <label class="field"><span class="field-label">UPI ID</span>
+              <input type="text" class="input mono" id="setUpiId" autocapitalize="off" spellcheck="false" placeholder="name@bank">
+              <span class="field-hint">Payment links created earlier keep the UPI ID they were made with.</span></label>
+            <div class="form-actions"><button type="submit" class="btn btn-primary">Save business details</button></div>
+          </form>
+
+          <form class="card form" id="formGmail" novalidate>
+            <h2 class="card-title">Payment alert inbox (Gmail)</h2>
+            <p class="card-sub">The inbox your bank emails when money is credited.</p>
+            <label class="field"><span class="field-label">Gmail address</span>
+              <input type="email" class="input" id="setGmailUser" autocomplete="off" placeholder="alerts@gmail.com"></label>
+            <label class="field"><span class="field-label">Gmail App Password</span>
+              <input type="password" class="input mono" id="setGmailPass" autocomplete="new-password" placeholder="16-character App Password">
+              <span class="field-hint" id="setGmailPassHint"></span></label>
+            <label class="field"><span class="field-label">Only accept alerts from these senders</span>
+              <input type="text" class="input mono" id="setAllowedSenders" autocapitalize="off" spellcheck="false" placeholder="yourbank.com, alerts@yourbank.com">
+              <span class="field-hint">Bank email addresses or domains, separated by commas. Leave empty to trust any email that looks like a credit alert. The Verification page shows the sender of every alert.</span></label>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Save inbox details</button>
+              <button type="button" class="btn" id="btnTestGmail">Test connection</button>
+              <button type="button" class="btn btn-danger-outline" id="btnClearGmail" hidden>Remove App Password</button>
+            </div>
+            <p class="field-hint" id="gmailFeedback"></p>
+          </form>
+
+          <div class="card form">
+            <h2 class="card-title">Dashboard sign-in</h2>
+            <p class="card-sub">The email and password used to open this dashboard.</p>
+            <form class="form" id="formLogin" novalidate>
+              <label class="field"><span class="field-label">Sign-in email</span>
+                <input type="email" class="input" id="setLoginEmail" autocomplete="username"></label>
+              <div class="form-actions"><button type="submit" class="btn btn-primary">Save sign-in email</button></div>
+            </form>
+            <form class="form form-divided" id="formPassword" novalidate>
+              <p class="field-hint" id="passwordEnvNote" hidden>The password is set by ADMIN_PASSWORD in the server's .env file (or host environment). Change it there and restart.</p>
+              <div class="form" id="passwordFields">
+                <label class="field"><span class="field-label">Current password</span>
+                  <input type="password" class="input" id="setCurrentPassword" autocomplete="current-password"></label>
+                <label class="field"><span class="field-label">New password</span>
+                  <input type="password" class="input" id="setNewPassword" autocomplete="new-password" placeholder="At least 8 characters"></label>
+                <div class="form-actions"><button type="submit" class="btn">Change password</button></div>
+              </div>
+            </form>
+          </div>
+
+          <div class="card form">
+            <h2 class="card-title">Server &amp; environment</h2>
+            <p class="card-sub">What this server is running with. Secret values are never shown.</p>
+            <div class="facts" id="systemFacts"></div>
+            <div class="table-scroll">
+              <table class="table table-compact">
+                <thead><tr><th>Setting</th><th>Current value</th><th>Change it</th></tr></thead>
+                <tbody id="envBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- ============================ ORDER DRAWER ============================ -->
+  <dialog class="drawer" id="orderDrawer" aria-labelledby="drawerTitle">
+    <div class="drawer-head">
+      <div>
+        <div class="drawer-eyebrow">Order</div>
+        <h2 class="drawer-title mono" id="drawerTitle"></h2>
+      </div>
+      <button type="button" class="icon-btn" id="drawerClose" aria-label="Close">×</button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+    <div class="drawer-foot" id="drawerFoot"></div>
+  </dialog>
+
+  <!-- ============================ NEW LINK MODAL ============================ -->
+  <dialog class="modal" id="linkModal" aria-labelledby="linkModalTitle">
+    <form class="form" id="linkForm" novalidate>
+      <div class="modal-head">
+        <h2 class="modal-title" id="linkModalTitle">New payment link</h2>
+        <button type="button" class="icon-btn" data-close-modal aria-label="Close">×</button>
+      </div>
+      <label class="field"><span class="field-label">Amount (₹)</span>
+        <input type="number" class="input" id="linkAmount" min="1" max="100000" step="0.01" inputmode="decimal" required></label>
+      <label class="field"><span class="field-label">What is it for? (shown to the customer)</span>
+        <input type="text" class="input" id="linkNote" maxlength="80" placeholder="e.g. A3 poster print"></label>
+      <label class="field"><span class="field-label">Customer name (optional)</span>
+        <input type="text" class="input" id="linkCustomer" maxlength="80">
+        <span class="field-hint">The checkout page asks the customer for name, mobile and email before showing the QR.</span></label>
+      <p class="form-error" id="linkError" role="alert" hidden></p>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="linkSubmit">Create link</button>
+        <button type="button" class="btn" data-close-modal>Cancel</button>
+      </div>
+    </form>
+
+    <div class="link-result" id="linkResult" hidden>
+      <div class="modal-head">
+        <h2 class="modal-title">Payment link ready</h2>
+        <button type="button" class="icon-btn" data-close-modal aria-label="Close">×</button>
+      </div>
+      <p class="link-amount" id="linkResultAmount"></p>
+      <p class="field-hint" id="linkResultNote"></p>
+      <div class="copy-row">
+        <input type="text" class="input mono" id="linkResultUrl" readonly>
+        <button type="button" class="btn btn-primary" id="linkResultCopy">Copy</button>
+      </div>
+      <div class="form-actions">
+        <a class="btn" id="linkResultOpen" target="_blank" rel="noopener">Open checkout</a>
+        <button type="button" class="btn" id="linkAnother">Create another</button>
+      </div>
+      <p class="field-hint">The link can be matched to a payment for 30 minutes. After that it shows as expired here.</p>
+    </div>
+  </dialog>
+
+  <!-- ============================ CONFIRM DIALOG ============================ -->
+  <dialog class="modal modal-small" id="askDialog" aria-labelledby="askTitle">
+    <form class="form" id="askForm" method="dialog" novalidate>
+      <h2 class="modal-title" id="askTitle"></h2>
+      <p class="ask-body" id="askBody"></p>
+      <label class="field" id="askInputWrap" hidden><span class="field-label" id="askInputLabel"></span>
+        <input type="text" class="input mono" id="askInput" maxlength="30"></label>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="askConfirm" value="ok">Confirm</button>
+        <button type="button" class="btn" id="askCancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <script src="/dashboard.js"></script>
+</body>
+</html>

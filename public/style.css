@@ -1900,3 +1900,32 @@ body {
 .font-mono { font-family: var(--font-mono); }
 .font-bold { font-weight: 700; }
 .hidden { display: none !important; }
+
+/* ==============================================================
+   BACKEND PANELS: nav status states, dashboard tabs, IMAP stream, settings
+   ============================================================== */
+.watcher-live-pill { cursor: pointer; }
+.watcher-live-pill.is-off .pulse-dot {
+  background: #94A3B8;
+  box-shadow: none;
+  animation: none;
+}
+.watcher-live-pill.is-warn .pulse-dot {
+  background: #F59E0B;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+}
+.watcher-live-pill.is-error .pulse-dot {
+  background: #DC2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+  animation: none;
+}
+
+.auth-hint {
+  font-size: 0.78rem;
+  color: #B45309;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0;
+}

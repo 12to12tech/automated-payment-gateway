@@ -8,14 +8,30 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeOnboardingStep = 1;
   let uploadedQrPath = '/uploads/default-qr.jpeg';
   let decodedUpiId = '8789601387@fam';
-  let merchantSse = null;
+  let authToken = '';
+  let registrationOpen = false;
+  try { authToken = localStorage.getItem('aurapay_token') || ''; } catch (e) {}
+
+  // Every dashboard request goes through here so the sign-in token is always attached
+  async function api(path, options = {}) {
+    const headers = { ...(options.headers || {}) };
+    if (authToken) headers.Authorization = `Bearer ${authToken}`;
+    if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+    const res = await fetch(path, { ...options, headers });
+    if (res.status === 401 && authToken) {
+      signOut('Your session ended. Please sign in again.');
+      throw new Error('unauthenticated');
+    }
+    return res;
+  }
 
   // Views
   const views = {
     landing: document.getElementById('viewLanding'),
     auth: document.getElementById('viewAuth'),
-    onboarding: document.getElementById('viewOnboarding'),
-    dashboard: document.getElementById('viewDashboard')
+    onboarding: document.getElementById('viewOnboarding')
   };
 
   // Nav Elements
@@ -36,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const formSignUp = document.getElementById('formSignUp');
   const loginEmail = document.getElementById('loginEmail');
   const loginPass = document.getElementById('loginPass');
-  const btnQuickDemoLogin = document.getElementById('btnQuickDemoLogin');
 
   // Onboarding Elements
   const obBusinessName = document.getElementById('obBusinessName');
@@ -57,35 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCopyObApiKey = document.getElementById('btnCopyObApiKey');
   const btnGoToDashboard = document.getElementById('btnGoToDashboard');
 
-  // Dashboard Elements
-  const dashBusinessTitle = document.getElementById('dashBusinessTitle');
-  const metricVolume = document.getElementById('metricVolume');
-  const metricPaidCount = document.getElementById('metricPaidCount');
-  const metricQueueLoad = document.getElementById('metricQueueLoad');
-  const ordersTableBody = document.getElementById('ordersTableBody');
-  const btnRefreshOrders = document.getElementById('btnRefreshOrders');
-  const dashApiKeyDisplay = document.getElementById('dashApiKeyDisplay');
-  const btnCopyDashKey = document.getElementById('btnCopyDashKey');
-  const codeSnippetBox = document.getElementById('codeSnippetBox');
-  const codeTabs = document.querySelectorAll('.code-tab');
-  const btnSimulateConcurrent = document.getElementById('btnSimulateConcurrent');
-  const simFeedback = document.getElementById('simFeedback');
-  const btnOpenCreatePaywallModal = document.getElementById('btnOpenCreatePaywallModal');
-  const btnDashLogout = document.getElementById('btnDashLogout');
-
-  // Paywall Modal Elements
-  const modalCreatePaywall = document.getElementById('modalCreatePaywall');
-  const btnClosePaywallModal = document.getElementById('btnClosePaywallModal');
-  const btnCancelPaywallModal = document.getElementById('btnCancelPaywallModal');
-  const formCreatePaywall = document.getElementById('formCreatePaywall');
-  const pwAmount = document.getElementById('pwAmount');
-  const pwCustomerName = document.getElementById('pwCustomerName');
-  const pwNote = document.getElementById('pwNote');
-  const paywallLinkResult = document.getElementById('paywallLinkResult');
-  const generatedPaywallUrl = document.getElementById('generatedPaywallUrl');
-  const btnCopyGeneratedUrl = document.getElementById('btnCopyGeneratedUrl');
-  const btnOpenGeneratedUrl = document.getElementById('btnOpenGeneratedUrl');
-
   const toastContainer = document.getElementById('toastContainer');
 
   init();
@@ -94,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
     setupAuth();
     setupOnboarding();
-    setupDashboard();
     loadSavedSession();
   }
 
@@ -111,60 +96,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // The merchant dashboard is its own page (/dashboard) and handles sign-in itself
+  function goDashboard(section) {
+    window.location.href = `/dashboard${section ? `#${section}` : ''}`;
+  }
+
   function setupNavigation() {
     brandLogo.addEventListener('click', () => showView('landing'));
 
-    btnNavLogin.addEventListener('click', () => {
-      if (currentMerchant) {
-        showView('dashboard');
-      } else {
-        setAuthTab('signin');
-        showView('auth');
-      }
-    });
+    btnNavLogin.addEventListener('click', () => goDashboard());
 
-    btnNavRegister.addEventListener('click', () => {
-      if (currentMerchant) {
-        showView('dashboard');
-      } else {
-        setAuthTab('signup');
-        showView('auth');
-      }
-    });
-
-    btnHeroGetStarted.addEventListener('click', () => {
-      if (currentMerchant) {
-        showView('dashboard');
-      } else {
-        setAuthTab('signup');
-        showView('auth');
-      }
-    });
+    // Sign-up only exists when the server allows new merchant accounts
+    const startOrOpen = () => {
+      if (currentMerchant || !registrationOpen) return goDashboard();
+      setAuthTab('signup');
+      showView('auth');
+    };
+    btnNavRegister.addEventListener('click', startOrOpen);
+    btnHeroGetStarted.addEventListener('click', startOrOpen);
 
     // Open Test Paywall
-    btnHeroDemoCheckout.addEventListener('click', async () => {
-      try {
-        const res = await fetch('/api/merchant/create-paywall-link', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-merchant-id': currentMerchant ? currentMerchant.id : 'merch_default'
-          },
-          body: JSON.stringify({
-            amount: 5,
-            customerName: 'Demo Customer',
-            note: 'Cloud Server Deployment Demo'
-          })
-        });
-        const data = await res.json();
-        if (data.success && data.paywallUrl) {
-          window.open(data.paywallUrl, '_blank');
-        } else {
-          showToast('Could not launch paywall.');
-        }
-      } catch (e) {
-        showToast('Error opening test paywall.');
-      }
+    btnHeroDemoCheckout.addEventListener('click', () => {
+      window.open('/test/new', '_blank');
+    });
+
+    // The status pill opens the Verification page of the dashboard
+    const openImap = () => goDashboard('verification');
+    navWatcherStatus.addEventListener('click', openImap);
+    navWatcherStatus.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openImap(); }
     });
 
     // Interactive Hero Simulation
@@ -220,13 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
     tabSignIn.addEventListener('click', () => setAuthTab('signin'));
     tabSignUp.addEventListener('click', () => setAuthTab('signup'));
 
-    // 1-Click Quick Demo Login
-    btnQuickDemoLogin.addEventListener('click', () => {
-      loginEmail.value = 'huntkum@gmail.com';
-      loginPass.value = 'password123';
-      formSignIn.dispatchEvent(new Event('submit'));
-    });
-
     // Sign In Submit
     formSignIn.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -241,8 +194,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const data = await res.json();
 
-        if (data.success && data.merchant) {
-          handleAuthSuccess(data.merchant);
+        if (data.success && data.merchant && data.token) {
+          loginPass.value = '';
+          handleAuthSuccess(data.merchant, data.token);
         } else {
           showToast(data.error || 'Invalid credentials');
         }
@@ -269,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (data.success && data.merchant) {
           showToast('Account created successfully!');
-          handleAuthSuccess(data.merchant);
+          handleAuthSuccess(data.merchant, data.token);
         } else {
           showToast(data.error || 'Registration failed');
         }
@@ -280,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function setAuthTab(tab) {
+    if (tab === 'signup' && !registrationOpen) tab = 'signin';
     if (tab === 'signin') {
       tabSignIn.classList.add('active');
       tabSignUp.classList.remove('active');
@@ -297,40 +252,60 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function handleAuthSuccess(merchant) {
+  function handleAuthSuccess(merchant, token) {
     currentMerchant = merchant;
-    localStorage.setItem('aurapay_merchant', JSON.stringify(merchant));
+    if (token) {
+      authToken = token;
+      try { localStorage.setItem('aurapay_token', token); } catch (e) {}
+    }
     updateNavState();
 
     if (!merchant.isOnboarded) {
       showView('onboarding');
       window.nextOnboardingSlide(1);
     } else {
-      showView('dashboard');
-      loadDashboardData();
+      goDashboard();
     }
   }
 
   async function loadSavedSession() {
-    const saved = localStorage.getItem('aurapay_merchant');
-    if (saved) {
-      try {
-        currentMerchant = JSON.parse(saved);
+    // Older versions kept the whole merchant record (including secrets) in the browser
+    try { localStorage.removeItem('aurapay_merchant'); } catch (e) {}
+
+    try {
+      const cfg = await (await fetch('/api/auth/config')).json();
+      registrationOpen = Boolean(cfg.registrationOpen);
+      tabSignUp.classList.toggle('hidden', !registrationOpen);
+      const hint = document.getElementById('authSetupHint');
+      if (hint) hint.classList.toggle('hidden', cfg.signInReady !== false);
+    } catch (e) {}
+    updateNavState();
+
+    if (!authToken) return;
+    try {
+      const res = await api('/api/auth/me');
+      const data = await res.json();
+      if (data.success && data.merchant) {
+        currentMerchant = data.merchant;
         updateNavState();
-        if (currentMerchant.isOnboarded) {
-          loadDashboardData();
-        }
-      } catch (e) {}
+        const imap = await (await api('/api/merchant/imap')).json();
+        if (imap.success) updateNavWatcher(imap.status);
+      }
+    } catch (e) {}
+  }
+
+  function signOut(message) {
+    authToken = '';
+    currentMerchant = null;
+    try { localStorage.removeItem('aurapay_token'); } catch (e) {}
+    updateNavState();
+    updateNavWatcher(null);
+    if (message) {
+      setAuthTab('signin');
+      showView('auth');
+      showToast(message);
     } else {
-      // Load default demo merchant
-      try {
-        const res = await fetch('/api/auth/me');
-        const data = await res.json();
-        if (data.success && data.merchant) {
-          currentMerchant = data.merchant;
-          updateNavState();
-        }
-      } catch (e) {}
+      showView('landing');
     }
   }
 
@@ -340,8 +315,32 @@ document.addEventListener('DOMContentLoaded', () => {
       btnNavRegister.textContent = 'Open Dashboard';
     } else {
       btnNavLogin.textContent = 'Sign In';
-      btnNavRegister.textContent = 'Get Started Free';
+      btnNavRegister.textContent = registrationOpen ? 'Get Started Free' : 'Merchant Sign In';
     }
+  }
+
+  // The pill in the top bar shows the real state of the Gmail connection
+  function describeWatcher(status) {
+    if (!status) return { tone: 'is-off', label: 'Sign in to view', title: 'Not signed in', sub: '' };
+    switch (status.state) {
+      case 'connected':
+        return { tone: '', label: 'Active', title: 'Connected and listening', sub: `Watching ${status.user} for bank credit alerts.` };
+      case 'connecting':
+        return { tone: 'is-warn', label: 'Connecting…', title: 'Connecting to Gmail…', sub: `Signing in to ${status.user}.` };
+      case 'reconnecting':
+        return { tone: 'is-warn', label: 'Reconnecting…', title: 'Connection lost, reconnecting', sub: (status.lastError && status.lastError.message) || '' };
+      case 'auth_failed':
+        return { tone: 'is-error', label: 'Sign-in failed', title: 'Gmail rejected the sign-in', sub: 'Check the Gmail address and App Password in Settings, then press Reconnect.' };
+      default:
+        return { tone: 'is-off', label: 'Not set up', title: 'Not set up', sub: 'Add a Gmail address and App Password in Settings to mark orders paid automatically.' };
+    }
+  }
+
+  function updateNavWatcher(status) {
+    const d = describeWatcher(status);
+    navWatcherStatus.classList.remove('is-off', 'is-warn', 'is-error');
+    if (d.tone) navWatcherStatus.classList.add(d.tone);
+    navWatcherText.textContent = `IMAP Stream: ${d.label}`;
   }
 
   // ==============================================================
@@ -366,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Uploading & decoding QR code...');
 
       try {
-        const res = await fetch('/api/merchant/upload-qr', {
+        const res = await api('/api/merchant/upload-qr', {
           method: 'POST',
           body: formData
         });
@@ -404,9 +403,8 @@ document.addEventListener('DOMContentLoaded', () => {
       testFeedback.textContent = 'Establishing secure TLS connection...';
 
       try {
-        const res = await fetch('/api/merchant/test-email', {
+        const res = await api('/api/merchant/test-email', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ gmailUser: user, gmailAppPass: pass })
         });
         const data = await res.json();
@@ -415,7 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
           testFeedback.innerHTML = `<span style="color:#047857; font-weight:700;">✓ Success: Verified IMAP access (${data.inboxCount} messages in INBOX)</span>`;
           showToast('Gmail connection confirmed!');
         } else {
-          testFeedback.innerHTML = `<span style="color:#DC2626;">✗ Failed: ${data.error}</span>`;
+          testFeedback.innerHTML = `<span style="color:#DC2626;">✗ Failed: ${escapeHtml(data.error || 'Unknown error')}</span>`;
         }
       } catch (err) {
         testFeedback.textContent = 'Network error testing Gmail.';
@@ -432,10 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    btnGoToDashboard.addEventListener('click', () => {
-      showView('dashboard');
-      loadDashboardData();
-    });
+    btnGoToDashboard.addEventListener('click', () => goDashboard());
   }
 
   // Global Slide Navigation function
@@ -513,7 +508,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!currentMerchant) return;
 
     const payload = {
-      merchantId: currentMerchant.id,
       businessName: obBusinessName.value.trim() || currentMerchant.businessName,
       upiId: obUpiId.value.trim() || decodedUpiId,
       qrImagePath: uploadedQrPath,
@@ -522,16 +516,19 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     try {
-      const res = await fetch('/api/merchant/complete-onboarding', {
+      const res = await api('/api/merchant/complete-onboarding', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
 
-      if (data.success && data.merchant) {
+      if (!data.success) {
+        showToast(data.error || 'Could not complete onboarding.');
+        return;
+      }
+      if (data.merchant) {
         currentMerchant = data.merchant;
-        localStorage.setItem('aurapay_merchant', JSON.stringify(data.merchant));
+        obGmailPass.value = '';
         obApiKeyDisplay.textContent = data.merchant.apiKey;
 
         // Launch celebratory confetti
@@ -545,261 +542,6 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Could not complete onboarding.');
     }
   };
-
-  // ==============================================================
-  // 4. MERCHANT DASHBOARD LOGIC
-  // ==============================================================
-  function setupDashboard() {
-    btnRefreshOrders.addEventListener('click', loadDashboardData);
-
-    const tableSearchInput = document.getElementById('tableSearchInput');
-    if (tableSearchInput) {
-      tableSearchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
-        const rows = ordersTableBody.querySelectorAll('tr');
-        rows.forEach(row => {
-          const txt = row.textContent.toLowerCase();
-          row.style.display = txt.includes(query) ? '' : 'none';
-        });
-      });
-    }
-
-    btnDashLogout.addEventListener('click', () => {
-      localStorage.removeItem('aurapay_merchant');
-      currentMerchant = null;
-      updateNavState();
-      showView('landing');
-      showToast('Logged out.');
-    });
-
-    btnCopyDashKey.addEventListener('click', () => {
-      const key = dashApiKeyDisplay.textContent;
-      navigator.clipboard.writeText(key).then(() => {
-        showToast('API Key copied: ' + key);
-      });
-    });
-
-    // Integration Code Tabs
-    codeTabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        codeTabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        renderCodeSnippet(tab.dataset.lang);
-      });
-    });
-
-    // Create Paywall Modal Events
-    btnOpenCreatePaywallModal.addEventListener('click', () => {
-      modalCreatePaywall.classList.remove('hidden');
-      paywallLinkResult.classList.add('hidden');
-    });
-
-    btnClosePaywallModal.addEventListener('click', () => modalCreatePaywall.classList.add('hidden'));
-    btnCancelPaywallModal.addEventListener('click', () => modalCreatePaywall.classList.add('hidden'));
-
-    formCreatePaywall.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const amount = pwAmount.value;
-      const customerName = pwCustomerName.value;
-      const note = pwNote.value;
-
-      try {
-        const res = await fetch('/api/merchant/create-paywall-link', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-merchant-id': currentMerchant ? currentMerchant.id : 'merch_default'
-          },
-          body: JSON.stringify({ amount, customerName, note })
-        });
-        const data = await res.json();
-
-        if (data.success && data.order) {
-          const fullUrl = `${window.location.origin}/pay/${data.order.orderId}`;
-          generatedPaywallUrl.value = fullUrl;
-          btnOpenGeneratedUrl.href = fullUrl;
-          paywallLinkResult.classList.remove('hidden');
-          loadDashboardData();
-          showToast('Payment link generated!');
-        }
-      } catch (err) {
-        showToast('Error creating payment link');
-      }
-    });
-
-    btnCopyGeneratedUrl.addEventListener('click', () => {
-      navigator.clipboard.writeText(generatedPaywallUrl.value).then(() => {
-        showToast('Paywall URL copied!');
-      });
-    });
-
-    // Concurrency Simulator Test
-    btnSimulateConcurrent.addEventListener('click', async () => {
-      btnSimulateConcurrent.disabled = true;
-      btnSimulateConcurrent.textContent = 'Simulating 2 simultaneous payments...';
-      simFeedback.classList.remove('hidden');
-      simFeedback.textContent = 'Launching User A (₹5) and User B (₹10) concurrently...';
-
-      try {
-        const p1 = fetch('/api/v1/simulate-payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            merchantId: currentMerchant ? currentMerchant.id : 'merch_default',
-            amount: 5,
-            payerName: 'Alex Rivera'
-          })
-        });
-
-        const p2 = fetch('/api/v1/simulate-payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            merchantId: currentMerchant ? currentMerchant.id : 'merch_default',
-            amount: 10,
-            payerName: 'Sarah Jenkins'
-          })
-        });
-
-        const [r1, r2] = await Promise.all([p1, p2]);
-        const d1 = await r1.json();
-        const d2 = await r2.json();
-
-        simFeedback.innerHTML = `
-          <strong>✓ Concurrency Engine Verified:</strong><br>
-          • User A: ₹${d1.simulatedPayment.amount} (UTR ${d1.simulatedPayment.utr}) processed independently.<br>
-          • User B: ₹${d2.simulatedPayment.amount} (UTR ${d2.simulatedPayment.utr}) processed independently.<br>
-          Zero collision detected.
-        `;
-
-        loadDashboardData();
-      } catch (err) {
-        simFeedback.textContent = 'Simulation failed.';
-      } finally {
-        btnSimulateConcurrent.disabled = false;
-        btnSimulateConcurrent.textContent = 'Run Concurrent Payment Test (2 Users)';
-      }
-    });
-  }
-
-  async function loadDashboardData() {
-    if (!currentMerchant) return;
-
-    try {
-      const res = await fetch('/api/merchant/dashboard', {
-        headers: { 'x-merchant-id': currentMerchant.id }
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        const m = data.merchant;
-        dashBusinessTitle.textContent = m.businessName;
-        dashApiKeyDisplay.textContent = m.apiKey;
-        metricVolume.textContent = `₹${parseFloat(data.metrics.totalVolume).toFixed(2)}`;
-        metricPaidCount.textContent = data.metrics.paidCount;
-        metricQueueLoad.textContent = `${data.metrics.pendingCount} active concurrent queues`;
-
-        renderOrdersTable(data.recentOrders);
-        renderCodeSnippet('curl');
-        connectDashboardSSE(currentMerchant.id);
-      }
-    } catch (e) {
-      console.warn('Dashboard load error:', e);
-    }
-  }
-
-  function renderOrdersTable(orders) {
-    if (!orders || orders.length === 0) {
-      ordersTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 24px; color: #94A3B8;">No transactions yet. Create a payment link above to start accepting funds.</td></tr>`;
-      return;
-    }
-
-    ordersTableBody.innerHTML = orders.map(o => {
-      const isPaid = o.status === 'PAID';
-      const statusHtml = isPaid
-        ? `<span class="badge-paid">✓ Verified</span>`
-        : `<span class="badge-pending">⏳ Waiting</span>`;
-      
-      const utr = o.paymentDetails ? (o.paymentDetails.utr || o.paymentDetails.txnId || 'N/A') : '-';
-      const time = new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      return `
-        <tr>
-          <td class="font-mono"><strong>${o.orderId}</strong></td>
-          <td>
-            ${escapeHtml(o.customerName || 'Customer')}
-            ${o.customerPhone ? `<div class="font-mono" style="font-size: 0.75rem; color: #64748B;">${escapeHtml(o.customerPhone)}</div>` : ''}
-            ${o.customerEmail ? `<div style="font-size: 0.75rem; color: #64748B;">${escapeHtml(o.customerEmail)}</div>` : ''}
-          </td>
-          <td><strong>₹${parseFloat(o.amount).toFixed(2)}</strong></td>
-          <td class="font-mono text-emerald">${utr}</td>
-          <td>${time}</td>
-          <td>${statusHtml}</td>
-        </tr>
-      `;
-    }).join('');
-  }
-
-  function renderCodeSnippet(lang) {
-    const key = currentMerchant ? currentMerchant.apiKey : 'aura_live_your_key_here';
-    const origin = window.location.origin;
-
-    if (lang === 'curl') {
-      codeSnippetBox.textContent = `curl -X POST ${origin}/api/v1/checkout/create \\
-  -H "x-api-key: ${key}" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "amount": 500,
-    "customerName": "John Doe",
-    "note": "Pro Plan Subscription"
-  }'`;
-    } else if (lang === 'node') {
-      codeSnippetBox.textContent = `const res = await fetch('${origin}/api/v1/checkout/create', {
-  method: 'POST',
-  headers: {
-    'x-api-key': '${key}',
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    amount: 500,
-    customerName: 'John Doe',
-    note: 'Pro Plan Subscription'
-  })
-});
-const data = await res.json();
-console.log('Hosted Paywall URL:', data.checkoutUrl);`;
-    } else if (lang === 'python') {
-      codeSnippetBox.textContent = `import requests
-
-res = requests.post(
-  '${origin}/api/v1/checkout/create',
-  headers={'x-api-key': '${key}'},
-  json={
-    'amount': 500,
-    'customerName': 'John Doe',
-    'note': 'Pro Plan Subscription'
-  }
-)
-data = res.json()
-print("Checkout URL:", data['checkoutUrl'])`;
-    }
-  }
-
-  function connectDashboardSSE(merchantId) {
-    if (merchantSse) return;
-    try {
-      merchantSse = new EventSource(`/api/merchant/events?merchantId=${merchantId}`);
-      merchantSse.onmessage = (e) => {
-        try {
-          const payload = JSON.parse(e.data);
-          if (payload.type === 'TRANSACTION_VERIFIED') {
-            showToast(`Payment of ₹${payload.order.amount} verified!`);
-            loadDashboardData();
-          }
-        } catch (err) {}
-      };
-    } catch (e) {}
-  }
 
   function showToast(msg) {
     const toast = document.createElement('div');

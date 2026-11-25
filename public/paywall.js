@@ -197,19 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = isTest ? `/test/${data.orderId}` : `/pay/${data.orderId}`;
         return;
       }
-
-      // This server asks for an API key on the endpoint above; use the merchant link endpoint instead
-      const linkRes = await fetch(`/api/merchant/create-paywall-link?_t=${Date.now()}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
-        body: JSON.stringify({ amount, note })
-      });
-      const linkData = await linkRes.json();
-      if (linkData.success && linkData.order && linkData.order.orderId) {
-        window.location.href = isTest ? `/test/${linkData.order.orderId}` : `/pay/${linkData.order.orderId}`;
-        return;
-      }
-      showToast('Failed to create dynamic order');
+      showToast(data.error || 'Failed to create dynamic order');
     } catch (err) {
       showToast('Error creating order');
     }

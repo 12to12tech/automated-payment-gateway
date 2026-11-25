@@ -37,9 +37,9 @@
       </nav>
 
       <div class="nav-actions">
-        <div class="watcher-live-pill" id="navWatcherStatus">
+        <div class="watcher-live-pill is-off" id="navWatcherStatus" role="button" tabindex="0" title="Open IMAP stream status">
           <span class="pulse-dot"></span>
-          <span class="watcher-text" id="navWatcherText">IMAP Stream: Active</span>
+          <span class="watcher-text" id="navWatcherText">IMAP Stream: Sign in to view</span>
         </div>
         <button type="button" class="btn-nav-secondary" id="btnNavLogin">Sign In</button>
         <button type="button" class="btn-nav-primary" id="btnNavRegister">Get Started Free</button>
@@ -306,21 +306,19 @@
           <form class="auth-form" id="formSignIn">
             <div class="form-group">
               <label class="form-label" for="loginEmail">Email Address</label>
-              <input type="email" id="loginEmail" class="form-control" placeholder="name@business.com" value="huntkum@gmail.com" required>
+              <input type="email" id="loginEmail" class="form-control" placeholder="name@business.com" autocomplete="username" required>
             </div>
 
             <div class="form-group">
               <label class="form-label" for="loginPass">Password</label>
-              <input type="password" id="loginPass" class="form-control" placeholder="••••••••" value="password123" required>
+              <input type="password" id="loginPass" class="form-control" placeholder="••••••••" autocomplete="current-password" required>
             </div>
 
             <button type="submit" class="btn-auth-submit" id="btnSubmitLogin">
               <span>Sign In to Dashboard</span>
             </button>
 
-            <button type="button" class="btn-demo-account" id="btnQuickDemoLogin">
-              ⚡ Quick Sign In with Demo Merchant Account
-            </button>
+            <p class="auth-hint hidden" id="authSetupHint">No dashboard password is set yet. Add ADMIN_PASSWORD to the server's .env file (or host environment) and restart.</p>
           </form>
 
           <!-- Sign Up Form (Hidden by default) -->
@@ -637,181 +635,6 @@
       </div>
     </section>
 
-    <!-- ==============================================================
-         VIEW 4: MERCHANT DASHBOARD
-         ============================================================== -->
-    <section class="view-section" id="viewDashboard">
-      <div class="dashboard-wrapper">
-        
-        <div class="dash-header">
-          <div>
-            <h1 class="dash-title" id="dashBusinessTitle">Apex Cloud &amp; Payments</h1>
-            <p class="dash-subtitle">Real-time payment gateway overview &amp; active concurrency monitor.</p>
-          </div>
-
-          <div class="dash-header-actions">
-            <button type="button" class="btn-dash-primary" id="btnOpenCreatePaywallModal">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              <span>Create Payment Link</span>
-            </button>
-            <button type="button" class="btn-dash-secondary" id="btnDashLogout">Log out</button>
-          </div>
-        </div>
-
-        <!-- Metric Stat Cards -->
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <div class="metric-top">
-              <span class="metric-label">Total Volume Processed</span>
-              <div class="metric-icon">₹</div>
-            </div>
-            <div class="metric-val" id="metricVolume">₹0.00</div>
-            <div class="metric-sub text-emerald">100% peer-to-peer settled</div>
-          </div>
-
-          <div class="metric-card">
-            <div class="metric-top">
-              <span class="metric-label">Verified Transactions</span>
-              <div class="metric-icon">✓</div>
-            </div>
-            <div class="metric-val" id="metricPaidCount">0</div>
-            <div class="metric-sub">Auto-verified via IMAP</div>
-          </div>
-
-          <div class="metric-card">
-            <div class="metric-top">
-              <span class="metric-label">Average Speed</span>
-              <div class="metric-icon">⚡</div>
-            </div>
-            <div class="metric-val">1.4s</div>
-            <div class="metric-sub">From bank alert to success</div>
-          </div>
-
-          <div class="metric-card">
-            <div class="metric-top">
-              <span class="metric-label">Concurrency Engine</span>
-              <div class="metric-icon">🛡️</div>
-            </div>
-            <div class="metric-val text-emerald">Active</div>
-            <div class="metric-sub" id="metricQueueLoad">0 active concurrent queues</div>
-          </div>
-        </div>
-
-        <div class="dash-split-grid">
-          
-          <!-- Left: Filterable Live Transactions Table -->
-          <div class="dash-panel flex-2">
-            <div class="panel-header">
-              <div>
-                <h3 class="panel-title">Live Transactions Feed</h3>
-                <p class="panel-sub">Real-time bank alerts auto-verified for this merchant.</p>
-              </div>
-              <div class="panel-controls">
-                <input type="text" id="tableSearchInput" class="table-search" placeholder="Search by Order or UTR...">
-                <button type="button" class="btn-refresh" id="btnRefreshOrders">↻ Refresh</button>
-              </div>
-            </div>
-
-            <div class="table-container">
-              <table class="dash-table">
-                <thead>
-                  <tr>
-                    <th>Order ID</th>
-                    <th>Customer</th>
-                    <th>Amount</th>
-                    <th>Bank UTR / Txn</th>
-                    <th>Time</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody id="ordersTableBody">
-                  <!-- Injected via JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Right: API & Simulator Hub -->
-          <div class="dash-panel flex-1">
-            
-            <div class="sub-panel">
-              <div class="sub-panel-title">Developer API Key</div>
-              <div class="dash-key-box">
-                <span class="font-mono text-truncate" id="dashApiKeyDisplay">aura_live_...</span>
-                <button type="button" class="btn-copy-sm" id="btnCopyDashKey">Copy</button>
-              </div>
-            </div>
-
-            <div class="sub-panel" id="api-section">
-              <div class="sub-panel-title">Integration Code Snippet</div>
-              <div class="code-tabs">
-                <button type="button" class="code-tab active" data-lang="curl">cURL</button>
-                <button type="button" class="code-tab" data-lang="node">Node.js</button>
-                <button type="button" class="code-tab" data-lang="python">Python</button>
-              </div>
-              <pre class="code-block"><code id="codeSnippetBox"></code></pre>
-            </div>
-
-            <div class="sub-panel">
-              <div class="sub-panel-title">⚡ Test Concurrency Engine</div>
-              <p class="panel-sub mb-2">Simulate two users paying simultaneously to verify race condition immunity.</p>
-              <button type="button" class="btn-simulate-concurrency" id="btnSimulateConcurrent">
-                Run Concurrent Payment Test (2 Users)
-              </button>
-              <div class="sim-feedback hidden" id="simFeedback"></div>
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-  </div>
-
-  <!-- MODAL: CREATE PAYWALL LINK -->
-  <div class="modal-overlay hidden" id="modalCreatePaywall">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h3 class="modal-title">Create Hosted Paywall Link</h3>
-        <button type="button" class="modal-close" id="btnClosePaywallModal">&times;</button>
-      </div>
-
-      <form id="formCreatePaywall">
-        <div class="form-group">
-          <label class="form-label" for="pwAmount">Payment Amount (₹)</label>
-          <input type="number" id="pwAmount" class="form-control font-bold" min="1" step="any" value="5" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="pwCustomerName">Customer Name</label>
-          <input type="text" id="pwCustomerName" class="form-control" placeholder="Alex Rivera" value="Alex Rivera">
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="pwNote">Order Note / Purpose</label>
-          <input type="text" id="pwNote" class="form-control" placeholder="e.g. Website Hosting #891" value="Website Hosting #891">
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn-slide-back" id="btnCancelPaywallModal">Cancel</button>
-          <button type="submit" class="btn-dash-primary">Generate Paywall Link</button>
-        </div>
-      </form>
-
-      <div class="paywall-result hidden" id="paywallLinkResult">
-        <div class="result-title">Hosted Paywall Link Ready:</div>
-        <div class="link-copy-row">
-          <input type="text" id="generatedPaywallUrl" class="form-control font-mono" readonly>
-          <button type="button" class="btn-dash-primary" id="btnCopyGeneratedUrl">Copy</button>
-          <a href="#" target="_blank" class="btn-dash-secondary" id="btnOpenGeneratedUrl">Open</a>
-        </div>
-      </div>
-    </div>
   </div>
 
   <div class="toast-container" id="toastContainer"></div>
