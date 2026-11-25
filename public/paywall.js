@@ -273,7 +273,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Pure direct PhonePe deep link with clean pre-filled parameters (no intent wrapper, no mode/tr)
       const phonePeDeepLink = `phonepe://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmt}&cu=INR&tn=${cleanNote}`;
-      btnPhonePe.href = phonePeDeepLink;
+      // A merchant UPI ID needs its merchant fields (mc, mid ...) on every request, so keep the full link for it
+      btnPhonePe.href = /(^|&)mc=/.test(upiParams) ? `phonepe://pay?${upiParams}` : phonePeDeepLink;
       btnPhonePe.onclick = null;
     }
     if (btnPaytm) {

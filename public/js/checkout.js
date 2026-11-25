@@ -52,7 +52,8 @@ function setupUpiIntentLinks(order) {
 
     // Direct PhonePe deep link with clean P2P parameters so PhonePe opens directly without rejection
     const phonePeDeepLink = `phonepe://pay?pa=${cleanVpa}&pn=${cleanName}&am=${cleanAmt}&cu=INR&tn=${cleanNote}`;
-    btnPhonePe.href = phonePeDeepLink;
+    // A merchant UPI ID needs its merchant fields (mc, mid ...) on every request, so keep the full link for it
+    btnPhonePe.href = /(^|&)mc=/.test(upiParams) ? `phonepe://pay?${upiParams}` : phonePeDeepLink;
     btnPhonePe.onclick = null;
   }
 

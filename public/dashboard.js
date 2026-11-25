@@ -75,7 +75,7 @@
   async function api(path, options = {}) {
     const headers = { ...(options.headers || {}) };
     if (state.token) headers.Authorization = `Bearer ${state.token}`;
-    if (options.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+    if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
     const res = await fetch(path, { ...options, headers });
     if (res.status === 401 && state.token) {
       signOut('Your session ended. Please sign in again.');
@@ -718,6 +718,20 @@
     $('btnClearGmail').hidden = !s.hasGmailAppPass;
     $('setAllowedSenders').value = (s.allowedSenders || []).join(', ');
     $('setLoginEmail').value = s.loginEmail || '';
+
+    const BANK_FIELD_LABELS = { mc: 'Merchant category', mid: 'Merchant ID', mtid: 'Terminal ID', orgid: 'Bank org ID', mode: 'QR mode', ver: 'Version', qrMedium: 'QR medium', msid: 'Store ID' };
+    $('bankQrFacts').hidden = !s.bankQr;
+    $('btnBankQrRemove').hidden = !s.bankQr;
+    $('btnBankQrUpload').textContent = s.bankQr ? 'Replace bank QR' : 'Upload bank QR';
+    $('bankQrStatus').className = `field-hint${s.bankQr ? ' is-ok' : ''}`;
+    $('bankQrStatus').textContent = s.bankQr
+      ? 'In use. New payment links carry these merchant details.'
+      : 'Not set. Payment links use the plain format, which is right for a personal UPI ID.';
+    if (s.bankQr) {
+      $('bankQrFacts').innerHTML = [fact('Registered name', s.bankQr.payeeName)]
+        .concat(Object.entries(s.bankQr.fields).map(([k, v]) => fact(BANK_FIELD_LABELS[k] || k, v))).join('');
+    }
+
     $('passwordEnvNote').hidden = !sys.passwordFromEnv;
     $('passwordFields').hidden = sys.passwordFromEnv;
 
@@ -749,6 +763,34 @@
     businessName: 'setBusinessName', payeeName: 'setPayeeName', upiId: 'setUpiId', gmailUser: 'setGmailUser',
     gmailAppPass: 'setGmailPass', allowedSenders: 'setAllowedSenders', loginEmail: 'setLoginEmail'
   };
+
+  // Read the QR the bank issued, show what was found, and use it for payment links once confirmed
+  async function uploadBankQr(file) {
+    const status = $('bankQrStatus');
+    status.className = 'field-hint';
+    status.textContent = 'Reading the QR…';
+    const form = new FormData();
+    form.append('qrImage', file);
+    const data = await getJson('/api/merchant/upload-qr?discard=1', { method: 'POST', body: form });
+    if (!data) return loadSettings();
+    const problem = !data.decoded ? (data.decodeError || 'No QR code was found in that image.')
+      : !data.bank ? (data.bankError || 'That is not a UPI payment QR.')
+      : Object.keys(data.bank.params).length === 0 ? 'This QR has no merchant details. It looks like a personal UPI QR, which needs nothing extra.'
+      : '';
+    if (problem) {
+      status.className = 'field-hint is-bad';
+      status.textContent = problem;
+      return;
+    }
+    const b = data.bank;
+    const ok = await ask({
+      title: 'Use this bank QR for payment links?',
+      body: `${b.payeeName || 'Unnamed payee'} · ${b.upiId} · ${Object.entries(b.params).map(([k, v]) => `${k} ${v}`).join(', ')}. Payments will go to this UPI ID.`,
+      confirmLabel: 'Use these details'
+    });
+    if (ok === null) return loadSettings();
+    await saveSettings($('formBusiness'), { bankQr: data.rawQrData }, 'Bank merchant details saved');
+  }
 
   async function saveSettings(form, payload, doneMessage) {
     form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
@@ -982,6 +1024,22 @@
         payeeName: $('setPayeeName').value,
         upiId: $('setUpiId').value
       }, 'Business details saved');
+    });
+    $('btnBankQrUpload').addEventListener('click', () => $('bankQrFile').click());
+    $('bankQrFile').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (file) uploadBankQr(file);
+    });
+    $('btnBankQrRemove').addEventListener('click', async () => {
+      const ok = await ask({
+        title: 'Remove the bank merchant details?',
+        body: 'New payment links go back to the plain format. UPI apps may decline payments to a merchant UPI ID again.',
+        confirmLabel: 'Remove',
+        danger: true
+      });
+      if (ok === null) return;
+      saveSettings($('formBusiness'), { clearBankQr: true }, 'Bank merchant details removed');
     });
     $('formGmail').addEventListener('submit', async (e) => {
       e.preventDefault();

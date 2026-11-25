@@ -89,12 +89,26 @@ function allocateAmount(merchantId, numAmount) {
   return finalAmount;
 }
 
+/**
+ * QR + tap-to-pay link for one order. A merchant UPI ID uses the bank's registered name and
+ * merchant fields (saved from the bank's QR); a personal UPI ID uses the plain link.
+ */
+function paymentRequestFor(merchant, { amount, note, orderId }) {
+  const bankParams = merchant.upiParams && Object.keys(merchant.upiParams).length > 0 ? merchant.upiParams : null;
+  return qrHelper.generateDynamicQrDataUrl({
+    upiId: merchant.upiId,
+    payeeName: (bankParams && merchant.upiPayeeName) || merchant.businessName,
+    amount,
+    note,
+    orderId,
+    bankParams
+  });
+}
+
 async function createOrderFor(merchant, { amount, customerName, customerEmail, note }) {
   const finalAmount = allocateAmount(merchant.id, amount);
   const orderId = `PAY-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
-  const { upiUri, qrDataUrl } = await qrHelper.generateDynamicQrDataUrl({
-    upiId: merchant.upiId,
-    payeeName: merchant.businessName,
+  const { upiUri, qrDataUrl } = await paymentRequestFor(merchant, {
     amount: finalAmount,
     note: note || orderId.replace(/[^a-zA-Z0-9]/g, ''),
     orderId
@@ -277,12 +291,20 @@ app.post('/api/merchant/upload-qr', requireAuth, upload.single('qrImage'), async
   // Automatically decode QR code to extract UPI ID
   const decoded = await qrHelper.decodeQrImage(filePath);
 
+  // The dashboard only needs what the QR says, so the photo itself is not kept
+  if (req.query.discard === '1') fs.unlink(filePath, () => {});
+
   res.json({
     success: true,
     qrImagePath: webPath,
+    decoded: Boolean(decoded.success),
+    decodeError: decoded.success ? null : decoded.error,
     detectedUpiId: decoded.upiId || req.merchant.upiId,
     detectedPayeeName: decoded.payeeName || req.merchant.businessName,
-    rawQrData: decoded.raw || ''
+    rawQrData: decoded.raw || '',
+    // Merchant fields found in a bank-issued QR (null for a personal QR)
+    bank: decoded.bank || null,
+    bankError: decoded.bankError || null
   });
 });
 
@@ -640,7 +662,11 @@ function settingsPayload(merchant) {
       gmailUser: merchant.gmailUser || '',
       hasGmailAppPass: Boolean(merchant.gmailAppPass),
       allowedSenders: merchant.allowedSenders || [],
-      apiKey: merchant.apiKey
+      apiKey: merchant.apiKey,
+      // Merchant fields copied from the bank's QR; null when payment links use the plain personal format
+      bankQr: merchant.upiParams && Object.keys(merchant.upiParams).length > 0
+        ? { payeeName: merchant.upiPayeeName || '', fields: merchant.upiParams }
+        : null
     },
     system: {
       runtime: onVercel ? 'Vercel (serverless)' : 'Always-on Node server',
@@ -660,6 +686,7 @@ function settingsPayload(merchant) {
     // Where each value currently comes from. Secrets are never sent, only whether they are set.
     environment: [
       { key: 'UPI_ID', value: merchant.upiId, editable: true },
+      { key: 'UPI_BANK_QR', value: merchant.upiParams && Object.keys(merchant.upiParams).length > 0 ? `Merchant details in use (${Object.keys(merchant.upiParams).join(', ')})` : 'Not set (plain personal links)', editable: true },
       { key: 'BUSINESS_NAME', value: merchant.businessName, editable: true },
       { key: 'PAYEE_NAME', value: merchant.name, editable: true },
       { key: 'GMAIL_USER', value: merchant.gmailUser || '', editable: true },
@@ -696,6 +723,20 @@ app.put('/api/merchant/settings', requireAuth, (req, res) => {
   if (body.upiId !== undefined) {
     const v = String(body.upiId).trim();
     if (!UPI_ID_PATTERN.test(v)) errors.upiId = 'Enter a valid UPI ID, for example name@bank'; else updates.upiId = v;
+  }
+  if (body.clearBankQr === true) {
+    updates.upiParams = {};
+    updates.upiPayeeName = '';
+  } else if (body.bankQr) {
+    // The text inside the QR the bank issued for this account. Its UPI ID becomes the payment UPI ID.
+    const parsed = qrHelper.parseBankQr(body.bankQr);
+    if (!parsed.ok) errors.bankQr = parsed.error;
+    else if (Object.keys(parsed.params).length === 0) errors.bankQr = 'This QR has no merchant details, so there is nothing to add. It looks like a personal UPI QR.';
+    else {
+      updates.upiId = parsed.upiId;
+      updates.upiPayeeName = cleanText(parsed.payeeName, 100);
+      updates.upiParams = parsed.params;
+    }
   }
   if (body.loginEmail !== undefined) {
     const v = String(body.loginEmail).trim().toLowerCase();
@@ -826,9 +867,7 @@ app.get('/api/v1/checkout/:orderId', async (req, res) => {
 
   // If dynamic QR wasn't pre-generated, generate it now
   if (!order.dynamicQrDataUrl && merchant) {
-    const { upiUri, qrDataUrl } = await qrHelper.generateDynamicQrDataUrl({
-      upiId: merchant.upiId,
-      payeeName: merchant.businessName,
+    const { upiUri, qrDataUrl } = await paymentRequestFor(merchant, {
       amount: order.amount,
       note: order.note,
       orderId: order.orderId

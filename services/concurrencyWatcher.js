@@ -323,7 +323,8 @@ class ConcurrencyWatcher {
     // 1. First Pass: Check for explicit Order ID match in payment snippet / note
     for (const order of pendingOrders) {
       const orderRef = order.orderId.toLowerCase();
-      if (pSnippet.includes(orderRef)) {
+      // Merchant payment requests carry the order ID without dashes (PAY123456789)
+      if (pSnippet.includes(orderRef) || pSnippet.includes(orderRef.replace(/[^a-z0-9]/g, ''))) {
         if (Math.abs(order.amount - payment.amount) < 0.01) {
           await this.executeOrderMatch(order, payment, 'EXPLICIT_ORDER_REF');
           return;

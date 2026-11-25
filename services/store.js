@@ -3,6 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { MerchantModel, OrderModel, connectMongo, getIsConnected } = require('./mongo');
 const auth = require('./auth');
+const { parseBankQr } = require('./qrHelper');
 
 const DEFAULT_MERCHANT_ID = 'merch_default';
 // Values that shipped in the public repository. Anyone can read them, so they are never kept.
@@ -110,6 +111,7 @@ class Store {
       gmailUser: m.gmailUser,
       hasGmailAppPass: Boolean(m.gmailAppPass),
       allowedSenders: m.allowedSenders || [],
+      hasBankQr: Boolean(m.upiParams && Object.keys(m.upiParams).length > 0),
       apiKey: m.apiKey,
       isOnboarded: m.isOnboarded,
       createdAt: m.createdAt
@@ -209,6 +211,17 @@ class Store {
         isOnboarded: true,
         createdAt: new Date().toISOString()
       };
+      // UPI_BANK_QR: the text inside the bank's merchant QR. Needed on hosts without permanent storage.
+      if (process.env.UPI_BANK_QR) {
+        const bank = parseBankQr(process.env.UPI_BANK_QR);
+        if (bank.ok && Object.keys(bank.params).length > 0) {
+          defaultMerchant.upiId = bank.upiId;
+          defaultMerchant.upiPayeeName = bank.payeeName;
+          defaultMerchant.upiParams = bank.params;
+        } else {
+          console.warn('[Store] UPI_BANK_QR was ignored:', bank.error || 'no merchant fields in it');
+        }
+      }
       this.data.merchants[defaultId] = defaultMerchant;
       this.saveLocal();
     }

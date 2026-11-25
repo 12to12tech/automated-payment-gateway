@@ -316,6 +316,20 @@
               <input type="text" class="input mono" id="setUpiId" autocapitalize="off" spellcheck="false" placeholder="name@bank">
               <span class="field-hint">Payment links created earlier keep the UPI ID they were made with.</span></label>
             <div class="form-actions"><button type="submit" class="btn btn-primary">Save business details</button></div>
+
+            <div class="form form-divided">
+              <div>
+                <div class="field-label">Bank merchant QR</div>
+                <p class="field-hint">For a business (merchant) UPI ID, UPI apps decline payments unless the request carries the merchant details your bank assigned. Upload the QR your bank issued and they are added to every payment link.</p>
+              </div>
+              <div class="facts" id="bankQrFacts" hidden></div>
+              <p class="field-hint" id="bankQrStatus"></p>
+              <div class="form-actions">
+                <button type="button" class="btn" id="btnBankQrUpload">Upload bank QR</button>
+                <button type="button" class="btn btn-danger-outline" id="btnBankQrRemove" hidden>Remove</button>
+                <input type="file" id="bankQrFile" accept="image/png,image/jpeg" hidden>
+              </div>
+            </div>
           </form>
 
           <form class="card form" id="formGmail" novalidate>
