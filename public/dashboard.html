@@ -315,6 +315,10 @@
             <label class="field"><span class="field-label">UPI ID</span>
               <input type="text" class="input mono" id="setUpiId" autocapitalize="off" spellcheck="false" placeholder="name@bank">
               <span class="field-hint">Payment links created earlier keep the UPI ID they were made with.</span></label>
+            <div class="field">
+              <label class="check"><input type="checkbox" id="setTapToPay"> <span>Open UPI apps from the checkout page on phones</span></label>
+              <span class="field-hint">Shows the Google Pay, PhonePe, Paytm buttons and opens the app after the customer's details. Turn this off if apps decline payments started from the page: phone customers then save the QR and scan it from their app's gallery option, which is treated as a normal QR payment.</span>
+            </div>
             <div class="form-actions"><button type="submit" class="btn btn-primary">Save business details</button></div>
 
             <div class="form form-divided">

@@ -1113,3 +1113,23 @@ body {
 .intent-app-logo + .intent-app-initial {
   display: none;
 }
+
+/* Save-the-QR flow, shown on phones when tap-to-pay is turned off */
+.save-qr-section { margin-top: 4px; }
+.save-qr-section.hidden { display: none; }
+.save-qr-steps {
+  margin: 14px 0 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.86rem;
+  color: var(--text-main);
+  text-align: left;
+}
+.save-qr-note {
+  margin: 12px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: left;
+}

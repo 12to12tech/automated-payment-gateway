@@ -126,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const isPhone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
     const upiUri = orderData && orderData.order && orderData.order.dynamicUpiUrl;
     if (!isPhone || !upiUri) return;
+    if (orderData.merchant && orderData.merchant.tapToPay === false) return; // merchant turned tap-to-pay off
     showToast('Opening your UPI app...');
     window.location.href = upiUri;
   }
@@ -233,6 +234,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     upiIdDisplay.textContent = m.upiId || '8789601387@fam';
+
+    // Tap-to-pay off for this merchant: no app buttons. On a phone, offer saving the QR to scan from the app's gallery.
+    const tapToPay = m.tapToPay !== false;
+    const intentSection = document.getElementById('intentSection');
+    const saveQrSection = document.getElementById('saveQrSection');
+    if (intentSection) intentSection.classList.toggle('hidden', !tapToPay);
+    if (saveQrSection) {
+      const onPhone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+      saveQrSection.classList.toggle('hidden', tapToPay || !onPhone);
+      const btnSaveQr = document.getElementById('btnSaveQr');
+      if (btnSaveQr && o.dynamicQrDataUrl) {
+        btnSaveQr.href = o.dynamicQrDataUrl;
+        btnSaveQr.download = `upi-qr-${o.orderId}.png`;
+      }
+      const saveQrAmount = document.getElementById('saveQrAmount');
+      if (saveQrAmount) saveQrAmount.textContent = `₹${parseFloat(o.amount).toFixed(2)}`;
+    }
 
     // 1-Tap Mobile Intent Deep-Links configuration
     if (typeof window.setupUpiIntentLinks === 'function') {

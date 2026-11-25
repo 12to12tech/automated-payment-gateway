@@ -95,6 +95,27 @@
         </div>
       </div>
 
+      <!-- Shown on phones instead of the app buttons when tap-to-pay is turned off for this merchant -->
+      <div class="save-qr-section hidden" id="saveQrSection">
+        <div class="intent-divider">
+          <span>PAYING FROM THIS PHONE?</span>
+        </div>
+        <a id="btnSaveQr" class="btn-intent-primary" href="#" download="upi-qr.png">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Save QR to this phone</span>
+        </a>
+        <ol class="save-qr-steps">
+          <li>Tap <strong>Save QR to this phone</strong>.</li>
+          <li>Open your UPI app and tap <strong>Scan</strong>.</li>
+          <li>Choose the saved QR from your gallery and pay <strong id="saveQrAmount"></strong>.</li>
+        </ol>
+        <p class="save-qr-note">Have another screen nearby? Open this page there and scan the QR directly.</p>
+      </div>
+
       <!-- 1-Tap Mobile Intent Deep-Links -->
       <div class="intent-section" id="intentSection">
         <div class="intent-divider">

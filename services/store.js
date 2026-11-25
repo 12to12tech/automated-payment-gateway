@@ -207,6 +207,8 @@ class Store {
         gmailUser: process.env.GMAIL_USER || 'huntkum@gmail.com',
         gmailAppPass: process.env.GMAIL_APP_PASS || '',
         allowedSenders: [],
+        // TAP_TO_PAY=false: the checkout page does not open UPI apps itself (see Dashboard > Settings)
+        tapToPay: !/^(0|false|no|off)$/i.test(String(process.env.TAP_TO_PAY || '').trim()),
         apiKey: newApiKey(),
         isOnboarded: true,
         createdAt: new Date().toISOString()

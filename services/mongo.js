@@ -12,6 +12,7 @@ const MerchantSchema = new mongoose.Schema({
   gmailUser: { type: String, default: '' },
   gmailAppPass: { type: String, default: '' },
   allowedSenders: { type: [String], default: [] },
+  tapToPay: { type: Boolean, default: true },
   upiPayeeName: { type: String, default: '' },
   upiParams: { type: mongoose.Schema.Types.Mixed, default: {} },
   apiKey: { type: String, required: true, unique: true, index: true },

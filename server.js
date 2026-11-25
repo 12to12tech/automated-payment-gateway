@@ -663,6 +663,7 @@ function settingsPayload(merchant) {
       hasGmailAppPass: Boolean(merchant.gmailAppPass),
       allowedSenders: merchant.allowedSenders || [],
       apiKey: merchant.apiKey,
+      tapToPay: merchant.tapToPay !== false,
       // Merchant fields copied from the bank's QR; null when payment links use the plain personal format
       bankQr: merchant.upiParams && Object.keys(merchant.upiParams).length > 0
         ? { payeeName: merchant.upiPayeeName || '', fields: merchant.upiParams }
@@ -687,6 +688,7 @@ function settingsPayload(merchant) {
     environment: [
       { key: 'UPI_ID', value: merchant.upiId, editable: true },
       { key: 'UPI_BANK_QR', value: merchant.upiParams && Object.keys(merchant.upiParams).length > 0 ? `Merchant details in use (${Object.keys(merchant.upiParams).join(', ')})` : 'Not set (plain personal links)', editable: true },
+      { key: 'TAP_TO_PAY', value: merchant.tapToPay !== false ? 'true (page opens UPI apps on phones)' : 'false (phones save the QR and scan it)', editable: true },
       { key: 'BUSINESS_NAME', value: merchant.businessName, editable: true },
       { key: 'PAYEE_NAME', value: merchant.name, editable: true },
       { key: 'GMAIL_USER', value: merchant.gmailUser || '', editable: true },
@@ -723,6 +725,9 @@ app.put('/api/merchant/settings', requireAuth, (req, res) => {
   if (body.upiId !== undefined) {
     const v = String(body.upiId).trim();
     if (!UPI_ID_PATTERN.test(v)) errors.upiId = 'Enter a valid UPI ID, for example name@bank'; else updates.upiId = v;
+  }
+  if (body.tapToPay !== undefined) {
+    updates.tapToPay = body.tapToPay === true || body.tapToPay === 'true';
   }
   if (body.clearBankQr === true) {
     updates.upiParams = {};
@@ -894,7 +899,9 @@ app.get('/api/v1/checkout/:orderId', async (req, res) => {
     merchant: {
       businessName: merchant ? merchant.businessName : 'Merchant Payee',
       upiId: merchant ? merchant.upiId : '',
-      qrImagePath: merchant ? merchant.qrImagePath : '/uploads/default-qr.jpeg'
+      qrImagePath: merchant ? merchant.qrImagePath : '/uploads/default-qr.jpeg',
+      // false = the page does not open UPI apps itself; phone customers save the QR and scan it in their app
+      tapToPay: merchant ? merchant.tapToPay !== false : true
     }
   });
 });

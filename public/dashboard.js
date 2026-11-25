@@ -710,6 +710,7 @@
     $('setBusinessName').value = s.businessName || '';
     $('setPayeeName').value = s.payeeName || '';
     $('setUpiId').value = s.upiId || '';
+    $('setTapToPay').checked = s.tapToPay !== false;
     $('setGmailUser').value = s.gmailUser || '';
     $('setGmailPass').value = '';
     $('setGmailPassHint').textContent = s.hasGmailAppPass
@@ -1022,7 +1023,8 @@
       saveSettings(e.target, {
         businessName: $('setBusinessName').value,
         payeeName: $('setPayeeName').value,
-        upiId: $('setUpiId').value
+        upiId: $('setUpiId').value,
+        tapToPay: $('setTapToPay').checked
       }, 'Business details saved');
     });
     $('btnBankQrUpload').addEventListener('click', () => $('bankQrFile').click());
