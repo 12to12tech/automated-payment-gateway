@@ -14,7 +14,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Multer Storage Configuration for QR uploads
-const uploadDir = path.join(__dirname, 'uploads');
+// On Vercel the project folder is read-only; only the temp folder can be written to
+const uploadDir = process.env.VERCEL
+  ? path.join(require('os').tmpdir(), 'uploads')
+  : path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -298,15 +301,15 @@ app.get('/api/merchant/events', (req, res) => {
   const merchant = store.getMerchantById(merchantId);
   if (!merchant) return res.status(404).end();
 
+  // No Gmail watcher configured: nothing will ever be sent, so don't hold the connection open
+  const watcher = watcherManager.getOrCreate(merchant);
+  if (!watcher) return res.status(204).end();
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
-
-  const watcher = watcherManager.getOrCreate(merchant);
-  if (watcher) {
-    watcher.subscribeMerchant(res);
-  }
+  watcher.subscribeMerchant(res);
 });
 
 // ==============================================================
@@ -519,18 +522,16 @@ app.get('/api/v1/checkout/events/:orderId', (req, res) => {
   const order = store.getOrder(orderId);
   if (!order) return res.status(404).end();
 
+  // No Gmail watcher configured: nothing will ever be sent, so don't hold the connection open
+  const merchant = store.getMerchantById(order.merchantId);
+  const watcher = merchant ? watcherManager.getOrCreate(merchant) : null;
+  if (!watcher) return res.status(204).end();
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
-
-  const merchant = store.getMerchantById(order.merchantId);
-  if (merchant) {
-    const watcher = watcherManager.getOrCreate(merchant);
-    if (watcher) {
-      watcher.subscribeOrder(orderId, res);
-    }
-  }
+  watcher.subscribeOrder(orderId, res);
 });
 
 // Manual UTR submission on paywall
@@ -616,10 +617,15 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(`🚀 AuraPay Platform running at: http://localhost:${PORT}`);
-  console.log(`💼 Active Merchant: ${defaultMerchant ? defaultMerchant.businessName : 'N/A'}`);
-  console.log(`📧 Monitoring Email: ${defaultMerchant ? defaultMerchant.gmailUser : 'N/A'}`);
-  console.log(`====================================================`);
-});
+// Run as a normal server with `node server.js`; on Vercel the app is imported by api/index.js instead
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`====================================================`);
+    console.log(`🚀 AuraPay Platform running at: http://localhost:${PORT}`);
+    console.log(`💼 Active Merchant: ${defaultMerchant ? defaultMerchant.businessName : 'N/A'}`);
+    console.log(`📧 Monitoring Email: ${defaultMerchant ? defaultMerchant.gmailUser : 'N/A'}`);
+    console.log(`====================================================`);
+  });
+}
+
+module.exports = app;

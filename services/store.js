@@ -3,7 +3,10 @@ const path = require('path');
 const crypto = require('crypto');
 const { MerchantModel, OrderModel, connectMongo, getIsConnected } = require('./mongo');
 
-const DB_PATH = path.join(__dirname, '..', 'data', 'store.json');
+// On Vercel the project folder is read-only; only the temp folder can be written to
+const DB_PATH = process.env.VERCEL
+  ? path.join(require('os').tmpdir(), 'aurapay-store.json')
+  : path.join(__dirname, '..', 'data', 'store.json');
 
 class Store {
   constructor() {
